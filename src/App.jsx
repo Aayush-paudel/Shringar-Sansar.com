@@ -7,6 +7,14 @@ import {
   AlertCircle, ChevronDown, MessageCircle, Facebook, Instagram, Award,
   RefreshCw, Eye, EyeOff, Filter, ArrowLeft, CircleCheck, Banknote, QrCode
 } from "lucide-react";
+import emailjs from "@emailjs/browser";
+
+/* ============================================================
+   EMAILJS CONFIG — real email verification codes
+   ============================================================ */
+const EMAILJS_SERVICE_ID = "service_7gh2l9a";
+const EMAILJS_TEMPLATE_ID = "template_ne674u9";
+const EMAILJS_PUBLIC_KEY = "LDniBRn4Y7M-opR0v";
 
 /* ============================================================
    SHRINGAR SANSAR — brand tokens
@@ -1267,13 +1275,27 @@ function LoginModal({ t, lang, dark, onClose, onVerified }) {
   const [sentCode, setSentCode] = useState(null);
   const [error, setError] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [sending, setSending] = useState(false);
 
-  function sendCode() {
+  async function sendCode() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError(lang === "en" ? "Please enter a valid email." : "मान्य इमेल राख्नुहोस्।"); return; }
-    const code4 = String(Math.floor(1000 + Math.random() * 9000));
-    setSentCode(code4);
     setError("");
-    setStep(2);
+    setSending(true);
+    const code4 = String(Math.floor(1000 + Math.random() * 9000));
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        { to_email: email, code: code4 },
+        { publicKey: EMAILJS_PUBLIC_KEY }
+      );
+      setSentCode(code4);
+      setStep(2);
+    } catch (err) {
+      setError(lang === "en" ? "Couldn't send the email. Please check the address and try again." : "इमेल पठाउन सकिएन। ठेगाना जाँच गरी फेरि प्रयास गर्नुहोस्।");
+    } finally {
+      setSending(false);
+    }
   }
   function verify() {
     if (code === sentCode) {
@@ -1300,15 +1322,16 @@ function LoginModal({ t, lang, dark, onClose, onVerified }) {
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="ss-focus"
             style={{ width: "100%", boxSizing: "border-box", padding: "11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, marginTop: 6, marginBottom: 8, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14 }} />
           {error && <div style={{ color: "#D14343", fontSize: 12, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={12} />{error}</div>}
-          <button className="ss-btn ss-caption" onClick={sendCode} style={{ width: "100%", background: C.wine700, color: "#fff", padding: 12, borderRadius: 10, fontWeight: 600, fontSize: 14 }}>{t.sendCode}</button>
+          <button className="ss-btn ss-caption" onClick={sendCode} disabled={sending} style={{ width: "100%", background: C.wine700, color: "#fff", padding: 12, borderRadius: 10, fontWeight: 600, fontSize: 14, opacity: sending ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {sending && <RefreshCw size={14} className="ss-spin" />} {sending ? (lang === "en" ? "Sending..." : "पठाइँदैछ...") : t.sendCode}
+          </button>
         </div>
       )}
       {step === 2 && (
         <div>
-          <p style={{ fontSize: 13, textAlign: "center", marginBottom: 10, color: C.ink600 }}>{email}</p>
-          <div style={{ background: dark ? C.plum950 : C.ivory100, border: `1px dashed ${C.gold400}88`, borderRadius: 10, padding: 10, fontSize: 12, marginBottom: 12, textAlign: "center" }}>
-            {t.demoCodeNote}<br /><span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "0.3em", color: C.wine700 }}>{sentCode}</span>
-          </div>
+          <p style={{ fontSize: 13, textAlign: "center", marginBottom: 14, color: C.ink600 }}>
+            {lang === "en" ? "We sent a code to " : "कोड यहाँ पठाइयो: "}<strong>{email}</strong>
+          </p>
           <label className="ss-caption" style={{ fontSize: 12, fontWeight: 600 }}>{t.enterCode}</label>
           <input value={code} maxLength={4} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="ss-focus"
             style={{ width: "100%", boxSizing: "border-box", padding: "11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, marginTop: 6, marginBottom: 8, fontSize: 20, letterSpacing: "0.4em", textAlign: "center", background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900 }} />
