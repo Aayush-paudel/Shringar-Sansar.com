@@ -370,6 +370,40 @@ async function storageSet(key, value, shared = false) {
   }
 }
 
+/* ============================================================
+   JSONBIN — shared, permanent cloud storage
+   Every visitor's browser reads/writes to this same online bin,
+   so admin-added products and login history are visible to everyone.
+   ============================================================ */
+const JSONBIN_BIN_ID = "6a8b1b10da38895dfe074507";
+const JSONBIN_MASTER_KEY = "$2a$10$C0fKN58Pf90OzKOXVsQKOegoMdlbVWBQgv8hVGYWGH10GK1rajlg.";
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+async function cloudFetch() {
+  try {
+    const res = await fetch(`${JSONBIN_BASE_URL}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_MASTER_KEY },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.record || null;
+  } catch (e) {
+    return null;
+  }
+}
+async function cloudSave(record) {
+  try {
+    const res = await fetch(JSONBIN_BASE_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_MASTER_KEY },
+      body: JSON.stringify(record),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
 function resizeImageFile(file, maxDim = 480) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -475,6 +509,8 @@ export default function ShringarSansarApp() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState(null);
+  const [loginHistory, setLoginHistory] = useState([]);
+  const [cloudReady, setCloudReady] = useState(false);
 
   const t = STR[lang];
   const dark = theme === "dark";
@@ -488,12 +524,28 @@ export default function ShringarSansarApp() {
   /* ---------- boot: load persisted state ---------- */
   useEffect(() => {
     (async () => {
-      const storedProducts = await storageGet("products", true, null);
-      if (storedProducts && Array.isArray(storedProducts) && storedProducts.length) {
-        setProducts(storedProducts);
+      // Try the shared cloud bin first — this is what makes admin-added
+      // products and login history visible to every visitor, everywhere.
+      const cloud = await cloudFetch();
+      if (cloud && Array.isArray(cloud.products) && cloud.products.length) {
+        setProducts(cloud.products);
+        setLoginHistory(Array.isArray(cloud.loginHistory) ? cloud.loginHistory : []);
+        setCloudReady(true);
       } else {
-        await storageSet("products", SEED_PRODUCTS, true);
+        // Cloud unreachable or empty — fall back to local copy, and if this
+        // is truly the first run ever, seed the cloud bin with defaults.
+        const storedProducts = await storageGet("products", true, null);
+        if (storedProducts && Array.isArray(storedProducts) && storedProducts.length) {
+          setProducts(storedProducts);
+        } else {
+          setProducts(SEED_PRODUCTS);
+        }
+        if (!cloud) {
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [] });
+          if (seeded) setCloudReady(true);
+        }
       }
+
       const storedCart = await storageGet("cart", false, []);
       setCart(storedCart || []);
       const storedOrders = await storageGet("orders", false, []);
@@ -525,7 +577,17 @@ export default function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-  }, []);
+    await cloudSave({ products: next, loginHistory });
+  }, [loginHistory]);
+
+  const recordLogin = useCallback(async (email) => {
+    setLoginHistory((prev) => {
+      const entry = { email, date: new Date().toISOString() };
+      const next = [entry, ...prev].slice(0, 500);
+      cloudSave({ products, loginHistory: next });
+      return next;
+    });
+  }, [products]);
 
   /* ---------- cart helpers ---------- */
   const cartDetailed = useMemo(
@@ -614,7 +676,7 @@ export default function ShringarSansarApp() {
           t={t} lang={lang} dark={dark}
           products={products} setProducts={persistProducts}
           orders={orders} setOrders={setOrders}
-          visitorCount={visitorCount}
+          visitorCount={visitorCount} loginHistory={loginHistory}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -672,7 +734,7 @@ export default function ShringarSansarApp() {
             <LoginModal
               t={t} lang={lang} dark={dark}
               onClose={() => setLoginOpen(false)}
-              onVerified={(email) => { setAuth({ email, verified: true }); setLoginOpen(false); showToast(lang === "en" ? "Email verified" : "इमेल प्रमाणित भयो"); }}
+              onVerified={(email) => { setAuth({ email, verified: true }); setLoginOpen(false); showToast(lang === "en" ? "Email verified" : "इमेल प्रमाणित भयो"); recordLogin(email); }}
             />
           )}
         </>
@@ -1758,7 +1820,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -1768,6 +1830,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
     { id: "products", label: t.products, icon: Gem },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
+    { id: "logins", label: lang === "en" ? "Login History" : "लगइन इतिहास", icon: Lock },
   ];
 
   return (
@@ -1800,6 +1863,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
         {tab === "products" && <AdminProducts t={t} lang={lang} dark={dark} products={products} setProducts={setProducts} />}
         {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} setOrders={setOrders} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
+        {tab === "logins" && <AdminLoginHistory t={t} lang={lang} dark={dark} loginHistory={loginHistory} />}
       </main>
 
       <style>{`
@@ -2093,6 +2157,41 @@ function AdminCustomers({ t, lang, dark, orders }) {
                   <td style={{ padding: 10 }}>{c.phone}</td>
                   <td style={{ padding: 10 }}>{c.orders}</td>
                   <td style={{ padding: 10 }}>{fmtNPR(c.spent)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminLoginHistory({ t, lang, dark, loginHistory }) {
+  const list = loginHistory || [];
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Login History" : "लगइन इतिहास"}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>
+        {lang === "en" ? "Every verified email login, saved permanently and visible to all admins." : "हरेक प्रमाणित इमेल लगइन, स्थायी रूपमा सुरक्षित र सबै एडमिनलाई देखिने।"}
+      </p>
+      {list.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: C.ink600 }}>{lang === "en" ? "No logins recorded yet." : "अहिलेसम्म कुनै लगइन रेकर्ड छैन।"}</div>
+      ) : (
+        <div style={{ overflowX: "auto", border: `1px solid ${C.gold400}33`, borderRadius: 14 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: dark ? C.plum900 : C.ivory100, textAlign: "left" }}>
+                {[lang === "en" ? "Email" : "इमेल", lang === "en" ? "Date & Time" : "मिति र समय"].map((h, i) => (
+                  <th key={i} className="ss-caption" style={{ padding: "10px 12px", fontSize: 11, color: C.ink600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((entry, i) => (
+                <tr key={i} style={{ borderTop: `1px solid ${C.gold400}22` }}>
+                  <td style={{ padding: 10 }}>{entry.email}</td>
+                  <td style={{ padding: 10, color: C.ink600 }}>{new Date(entry.date).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
