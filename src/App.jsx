@@ -502,6 +502,10 @@ export default function ShringarSansarApp() {
       setLang(storedLang || "en");
       const storedTheme = await storageGet("pref-theme", false, "light");
       setTheme(storedTheme || "light");
+      const storedAuth = await storageGet("auth", false, null);
+      if (storedAuth && storedAuth.verified && storedAuth.email) {
+        setAuth(storedAuth);
+      }
 
       let v = await storageGet("visitor-count", true, 0);
       v = (v || 0) + 1;
@@ -516,6 +520,7 @@ export default function ShringarSansarApp() {
   useEffect(() => { if (booted) storageSet("pref-theme", theme, false); }, [theme, booted]);
   useEffect(() => { if (booted) storageSet("cart", cart, false); }, [cart, booted]);
   useEffect(() => { if (booted) storageSet("orders", orders, false); }, [orders, booted]);
+  useEffect(() => { if (booted) storageSet("auth", auth, false); }, [auth, booted]);
 
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
@@ -618,6 +623,7 @@ export default function ShringarSansarApp() {
             t={t} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme}
             cartCount={cartCount} onCartClick={() => setCartOpen(true)}
             onLoginClick={() => setLoginOpen(true)} auth={auth}
+            onLogout={() => { setAuth({ email: null, verified: false }); showToast(lang === "en" ? "Signed out" : "साइन आउट भयो"); }}
             go={go} route={route} dark={dark}
             onAdminClick={() => setRoute({ page: "admin-gate" })}
             searchQuery={searchQuery} setSearchQuery={setSearchQuery}
@@ -678,8 +684,9 @@ export default function ShringarSansarApp() {
 /* ============================================================
    HEADER
    ============================================================ */
-function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onLoginClick, auth, go, route, dark, onAdminClick, searchQuery, setSearchQuery }) {
+function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onLoginClick, auth, onLogout, go, route, dark, onAdminClick, searchQuery, setSearchQuery }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const navItems = [
     { key: "home", label: t.home },
     { key: "shop", label: t.shop },
@@ -739,10 +746,23 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <button className="ss-btn" onClick={onLoginClick} title={t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={() => auth.verified ? setAccountOpen((o) => !o) : onLoginClick()} title={t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <User size={19} />
           {auth.verified && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "#2E9E5B", border: `1.5px solid ${dark ? C.plum950 : C.ivory50}` }} />}
         </button>
+        {accountOpen && auth.verified && (
+          <div className="ss-fade-in ss-caption" style={{
+            position: "absolute", top: 56, right: 60, zIndex: 150, background: dark ? C.plum900 : "#fff",
+            border: `1px solid ${C.gold400}44`, borderRadius: 12, padding: 14, minWidth: 200, boxShadow: "0 14px 30px -10px rgba(0,0,0,.4)",
+          }}>
+            <div style={{ fontSize: 11, color: C.ink600, marginBottom: 2 }}>{lang === "en" ? "Signed in as" : "यसमा साइन इन गरिएको"}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, wordBreak: "break-all" }}>{auth.email}</div>
+            <button className="ss-btn ss-caption" onClick={() => { setAccountOpen(false); go("orders"); }} style={{ width: "100%", textAlign: "left", background: "none", padding: "8px 6px", fontSize: 13, color: dark ? C.ivory50 : C.ink900, borderRadius: 6 }}>{t.myOrders}</button>
+            <button className="ss-btn ss-caption" onClick={() => { setAccountOpen(false); onLogout(); }} style={{ width: "100%", textAlign: "left", background: "none", padding: "8px 6px", fontSize: 13, color: C.rose500, borderRadius: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              <LogOut size={14} /> {t.logout}
+            </button>
+          </div>
+        )}
 
         <button className="ss-btn" onClick={onCartClick} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <ShoppingBag size={20} />
