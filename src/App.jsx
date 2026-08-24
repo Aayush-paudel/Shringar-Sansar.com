@@ -1979,7 +1979,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  const DEMO_PASSWORD = "shringar123";
+  const DEMO_PASSWORD = "!@#$%";
   function submit() {
     if (pw === DEMO_PASSWORD) onSuccess();
     else setError(t.wrongPassword);
@@ -1991,7 +1991,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
           <Lock size={22} color="#fff" />
         </div>
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
-        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
+        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}></p>
         <div style={{ position: "relative", marginBottom: 10 }}>
           <input type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder={t.adminPassword} className="ss-focus" style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14 }} />
