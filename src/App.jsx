@@ -5,7 +5,7 @@ import {
   Plus, Check, Lock, Mail, Package, TrendingUp, Users, DollarSign,
   LayoutDashboard, LogOut, Gem, Sparkles, ShieldCheck, Truck, Minus,
   AlertCircle, ChevronDown, MessageCircle, Facebook, Instagram, Award,
-  RefreshCw, Eye, EyeOff, Filter, ArrowLeft, CircleCheck, Banknote, QrCode
+  RefreshCw, Eye, EyeOff, Filter, ArrowLeft, CircleCheck, Banknote, QrCode, Gift, Tag
 } from "lucide-react";
 import emailjs from "@emailjs/browser";
 
@@ -164,6 +164,25 @@ const STR = {
     openingHours: "Opening Hours",
     dailyFrom: "Daily from 8:30 AM",
     close: "Close",
+    specialOffers: "Special Offers",
+    seeOffer: "See Offer",
+    addComboToCart: "Add Combo to Cart",
+    includes: "Includes",
+    youSave: "You save",
+    comboPrice: "Combo Price",
+    originalPrice: "Original Price",
+    offerTitleEn: "Offer Title (English)",
+    offerTitleNp: "Offer Title (Nepali)",
+    offerDescEn: "Offer Description (English)",
+    offerDescNp: "Offer Description (Nepali)",
+    selectProducts: "Select Products for this Combo",
+    activeToggle: "Active (visible to customers)",
+    manageOffers: "Manage Offers",
+    addOffer: "Add New Offer",
+    noOffersYet: "No special offers right now — check back soon!",
+    offerTheme: "Banner Theme",
+    limitedTime: "Limited Time",
+    comboAdded: "Combo added to cart",
   },
   np: {
     tagline: "तपाईंको कथा सिँगार्नुहोस्",
@@ -288,6 +307,25 @@ const STR = {
     openingHours: "खुल्ने समय",
     dailyFrom: "हरेक दिन बिहान ८:३० बजेदेखि",
     close: "बन्द गर्नुहोस्",
+    specialOffers: "विशेष अफरहरू",
+    seeOffer: "अफर हेर्नुहोस्",
+    addComboToCart: "कम्बो कार्टमा राख्नुहोस्",
+    includes: "समावेश छ",
+    youSave: "तपाईंले बचत गर्नुहुन्छ",
+    comboPrice: "कम्बो मूल्य",
+    originalPrice: "सामान्य मूल्य",
+    offerTitleEn: "अफर शीर्षक (अंग्रेजी)",
+    offerTitleNp: "अफर शीर्षक (नेपाली)",
+    offerDescEn: "अफर विवरण (अंग्रेजी)",
+    offerDescNp: "अफर विवरण (नेपाली)",
+    selectProducts: "यो कम्बोका लागि सामान छान्नुहोस्",
+    activeToggle: "सक्रिय (ग्राहकलाई देखिने)",
+    manageOffers: "अफर व्यवस्थापन",
+    addOffer: "नयाँ अफर थप्नुहोस्",
+    noOffersYet: "अहिले कुनै विशेष अफर छैन — छिट्टै फेरि हेर्नुहोस्!",
+    offerTheme: "ब्यानर रङ",
+    limitedTime: "सीमित समय",
+    comboAdded: "कम्बो कार्टमा थपियो",
   },
 };
 
@@ -510,6 +548,7 @@ export default function ShringarSansarApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [cloudReady, setCloudReady] = useState(false);
 
   const t = STR[lang];
@@ -530,6 +569,7 @@ export default function ShringarSansarApp() {
       if (cloud && Array.isArray(cloud.products) && cloud.products.length) {
         setProducts(cloud.products);
         setLoginHistory(Array.isArray(cloud.loginHistory) ? cloud.loginHistory : []);
+        setOffers(Array.isArray(cloud.offers) ? cloud.offers : []);
         setCloudReady(true);
       } else {
         // Cloud unreachable or empty — fall back to local copy, and if this
@@ -541,7 +581,7 @@ export default function ShringarSansarApp() {
           setProducts(SEED_PRODUCTS);
         }
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [] });
           if (seeded) setCloudReady(true);
         }
       }
@@ -577,22 +617,42 @@ export default function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory });
-  }, [loginHistory]);
+    await cloudSave({ products: next, loginHistory, offers });
+  }, [loginHistory, offers]);
+
+  const persistOffers = useCallback(async (next) => {
+    setOffers(next);
+    await cloudSave({ products, loginHistory, offers: next });
+  }, [products, loginHistory]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next });
+      cloudSave({ products, loginHistory: next, offers });
       return next;
     });
-  }, [products]);
+  }, [products, offers]);
 
   /* ---------- cart helpers ---------- */
   const cartDetailed = useMemo(
-    () => cart.map((c) => ({ ...c, product: products.find((p) => p.id === c.id) })).filter((c) => c.product),
-    [cart, products]
+    () => cart.map((c) => {
+      if (typeof c.id === "string" && c.id.startsWith("combo:")) {
+        const offerId = c.id.slice(6);
+        const offer = offers.find((o) => o.id === offerId);
+        if (!offer) return null;
+        const includedProducts = (offer.productIds || []).map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+        const syntheticProduct = {
+          id: c.id, nameEn: offer.titleEn, nameNp: offer.titleNp || offer.titleEn,
+          price: offer.comboPrice, discount: 0, stock: 99, image: offer.image || null,
+          emoji: "🎁", color: offer.color || C.gold400,
+          isCombo: true, includedProducts,
+        };
+        return { ...c, product: syntheticProduct };
+      }
+      return { ...c, product: products.find((p) => p.id === c.id) };
+    }).filter((c) => c && c.product),
+    [cart, products, offers]
   );
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
   const cartSubtotal = cartDetailed.reduce((s, c) => {
@@ -607,6 +667,16 @@ export default function ShringarSansarApp() {
       return [...prev, { id: productId, qty }];
     });
     showToast(lang === "en" ? "Added to cart" : "कार्टमा थपियो");
+    setCartOpen(true);
+  }
+  function addComboToCart(offerId, qty = 1) {
+    const cartId = "combo:" + offerId;
+    setCart((prev) => {
+      const exists = prev.find((c) => c.id === cartId);
+      if (exists) return prev.map((c) => (c.id === cartId ? { ...c, qty: c.qty + qty } : c));
+      return [...prev, { id: cartId, qty }];
+    });
+    showToast(t.comboAdded);
     setCartOpen(true);
   }
   function setCartQty(productId, qty) {
@@ -677,6 +747,7 @@ export default function ShringarSansarApp() {
           products={products} setProducts={persistProducts}
           orders={orders} setOrders={setOrders}
           visitorCount={visitorCount} loginHistory={loginHistory}
+          offers={offers} setOffers={persistOffers}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -693,7 +764,7 @@ export default function ShringarSansarApp() {
 
           <main>
             {route.page === "home" && (
-              <HomePage t={t} lang={lang} dark={dark} products={products} go={go} addToCart={addToCart} visitorCount={visitorCount} />
+              <HomePage t={t} lang={lang} dark={dark} products={products} offers={offers} go={go} addToCart={addToCart} addComboToCart={addComboToCart} visitorCount={visitorCount} />
             )}
             {route.page === "shop" && (
               <ShopPage t={t} lang={lang} dark={dark} products={products} addToCart={addToCart} initialQuery={searchQuery} />
@@ -898,7 +969,7 @@ function AnimatedCounter({ to, label, dark }) {
   );
 }
 
-function HomePage({ t, lang, dark, products, go, addToCart, visitorCount }) {
+function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCart, visitorCount }) {
   const featured = products.filter((p) => p.featured);
   const [tIndex, setTIndex] = useState(0);
   useEffect(() => {
@@ -964,6 +1035,9 @@ function HomePage({ t, lang, dark, products, go, addToCart, visitorCount }) {
           </div>
         </div>
       </section>
+
+      {/* SPECIAL OFFERS */}
+      <SpecialOffersSection t={t} lang={lang} dark={dark} offers={offers} products={products} addComboToCart={addComboToCart} />
 
       {/* CATEGORIES */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 20px 20px" }}>
@@ -1060,6 +1134,92 @@ function SectionHeading({ title, dark, center }) {
       {center && <PaisleyDivider dark={dark} />}
       {!center && <div style={{ width: 50, height: 3, background: C.gold400, borderRadius: 2, marginTop: 8 }} />}
     </div>
+  );
+}
+
+function SpecialOffersSection({ t, lang, dark, offers, products, addComboToCart }) {
+  const [selected, setSelected] = useState(null);
+  const activeOffers = (offers || []).filter((o) => o.active);
+  if (activeOffers.length === 0) return null;
+  return (
+    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 20px 10px" }}>
+      <SectionHeading title={t.specialOffers} dark={dark} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18, marginTop: 22 }}>
+        {activeOffers.map((offer) => {
+          const included = (offer.productIds || []).map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+          const originalTotal = included.reduce((s, p) => s + Math.round(p.price * (1 - (p.discount || 0) / 100)), 0);
+          const savings = Math.max(0, originalTotal - (offer.comboPrice || 0));
+          const themeColor = offer.color || C.wine700;
+          return (
+            <button key={offer.id} onClick={() => setSelected(offer)} className="ss-btn ss-card"
+              style={{
+                textAlign: "left", borderRadius: 18, padding: 22, position: "relative", overflow: "hidden",
+                background: `linear-gradient(135deg, ${themeColor}, ${C.plum950})`, color: "#fff", border: `1px solid ${C.gold400}55`,
+              }}>
+              <svg style={{ position: "absolute", inset: 0, opacity: 0.14 }} width="100%" height="100%" preserveAspectRatio="none">
+                <defs>
+                  <pattern id={`op-${offer.id}`} width="70" height="70" patternUnits="userSpaceOnUse">
+                    <path d="M10 35c0-8 6-14 14-14s14 6 14 14-6 12-12 12c-4 0-7-3-7-7 0-3 2-5 4-5" stroke="#fff" strokeWidth="1" fill="none" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill={`url(#op-${offer.id})`} />
+              </svg>
+              <div style={{ position: "relative" }}>
+                <Badge tone="gold">🎉 {t.limitedTime}</Badge>
+                <div className="ss-display" style={{ fontSize: 22, fontWeight: 700, marginTop: 12 }}>{lang === "en" ? offer.titleEn : (offer.titleNp || offer.titleEn)}</div>
+                <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6, minHeight: 34 }}>{lang === "en" ? offer.descEn : (offer.descNp || offer.descEn)}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 14 }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: C.gold300 }}>{fmtNPR(offer.comboPrice)}</span>
+                  {originalTotal > 0 && <span style={{ fontSize: 13, textDecoration: "line-through", opacity: 0.7 }}>{fmtNPR(originalTotal)}</span>}
+                </div>
+                {savings > 0 && <div style={{ fontSize: 11.5, color: C.gold300, marginTop: 2 }}>{t.youSave} {fmtNPR(savings)}</div>}
+                <div className="ss-caption" style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#fff" }}>
+                  {t.seeOffer} <ChevronRight size={15} />
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {selected && (
+        <OfferDetailModal offer={selected} t={t} lang={lang} dark={dark} products={products} addComboToCart={addComboToCart} onClose={() => setSelected(null)} />
+      )}
+    </section>
+  );
+}
+
+function OfferDetailModal({ offer, t, lang, dark, products, addComboToCart, onClose }) {
+  const included = (offer.productIds || []).map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+  const originalTotal = included.reduce((s, p) => s + Math.round(p.price * (1 - (p.discount || 0) / 100)), 0);
+  const savings = Math.max(0, originalTotal - (offer.comboPrice || 0));
+  const themeColor = offer.color || C.wine700;
+  return (
+    <ModalShell onClose={onClose} dark={dark} width={520}>
+      <div style={{ margin: "-24px -24px 18px", padding: "22px 24px", background: `linear-gradient(135deg, ${themeColor}, ${C.plum950})`, color: "#fff", borderRadius: "18px 18px 0 0" }}>
+        <Badge tone="gold">🎉 {t.limitedTime}</Badge>
+        <h3 className="ss-display" style={{ fontSize: 24, fontWeight: 700, margin: "10px 0 4px" }}>{lang === "en" ? offer.titleEn : (offer.titleNp || offer.titleEn)}</h3>
+        <p style={{ fontSize: 13, opacity: 0.9 }}>{lang === "en" ? offer.descEn : (offer.descNp || offer.descEn)}</p>
+      </div>
+      <div className="ss-caption" style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: C.ink600 }}>{t.includes}:</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {included.map((p) => (
+          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <ProductImage p={p} size={40} />
+            <div style={{ flex: 1, fontSize: 13 }}>{lang === "en" ? p.nameEn : p.nameNp}</div>
+            <div style={{ fontSize: 12.5, color: C.ink600 }}>{fmtNPR(Math.round(p.price * (1 - (p.discount || 0) / 100)))}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop: `1px solid ${C.gold400}33`, paddingTop: 14 }}>
+        <Row label={t.originalPrice} value={fmtNPR(originalTotal)} />
+        <Row label={t.comboPrice} value={fmtNPR(offer.comboPrice)} bold />
+        {savings > 0 && <div style={{ fontSize: 12.5, color: "#2E9E5B", fontWeight: 600, marginTop: 2 }}>{t.youSave} {fmtNPR(savings)} 🎉</div>}
+      </div>
+      <button className="ss-btn ss-caption" onClick={() => { addComboToCart(offer.id); onClose(); }}
+        style={{ width: "100%", marginTop: 18, background: C.wine700, color: "#fff", padding: 13, borderRadius: 10, fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <Gift size={16} /> {t.addComboToCart}
+      </button>
+    </ModalShell>
   );
 }
 
@@ -1278,7 +1438,15 @@ function CartLineItem({ c, t, lang, dark, setCartQty, removeFromCart }) {
     <div style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.gold400}22` }}>
       <ProductImage p={c.product} size={56} />
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{lang === "en" ? c.product.nameEn : c.product.nameNp}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {c.product.isCombo && <Badge tone="gold">🎁</Badge>}
+          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{lang === "en" ? c.product.nameEn : c.product.nameNp}</div>
+        </div>
+        {c.product.isCombo && c.product.includedProducts?.length > 0 && (
+          <div style={{ fontSize: 11, color: C.ink600, marginTop: 2 }}>
+            {t.includes}: {c.product.includedProducts.map((p) => lang === "en" ? p.nameEn : p.nameNp).join(", ")}
+          </div>
+        )}
         <div style={{ fontSize: 13, color: C.wine700, fontWeight: 700, marginTop: 2 }}>{fmtNPR(price)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
           <QtyStepper qty={c.qty} setQty={(q) => setCartQty(c.id, q)} max={c.product.stock} />
@@ -1789,7 +1957,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  const DEMO_PASSWORD = "!@#$%";
+  const DEMO_PASSWORD = "shringar123";
   function submit() {
     if (pw === DEMO_PASSWORD) onSuccess();
     else setError(t.wrongPassword);
@@ -1801,7 +1969,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
           <Lock size={22} color="#fff" />
         </div>
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
-        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}></p>
+        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
         <div style={{ position: "relative", marginBottom: 10 }}>
           <input type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder={t.adminPassword} className="ss-focus" style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14 }} />
@@ -1820,7 +1988,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, offers, setOffers, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -1828,6 +1996,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
   const tabs = [
     { id: "overview", label: t.overview, icon: LayoutDashboard },
     { id: "products", label: t.products, icon: Gem },
+    { id: "offers", label: t.specialOffers, icon: Gift },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
     { id: "logins", label: lang === "en" ? "Login History" : "लगइन इतिहास", icon: Lock },
@@ -1861,6 +2030,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
       <main style={{ flex: 1, padding: 24, minWidth: 0 }}>
         {tab === "overview" && <AdminOverview t={t} lang={lang} dark={dark} products={products} orders={orders} visitorCount={visitorCount} />}
         {tab === "products" && <AdminProducts t={t} lang={lang} dark={dark} products={products} setProducts={setProducts} />}
+        {tab === "offers" && <AdminOffers t={t} lang={lang} dark={dark} offers={offers} setOffers={setOffers} products={products} />}
         {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} setOrders={setOrders} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
         {tab === "logins" && <AdminLoginHistory t={t} lang={lang} dark={dark} loginHistory={loginHistory} />}
@@ -2079,6 +2249,179 @@ function AdminProducts({ t, lang, dark, products, setProducts }) {
         @keyframes ssspin { to { transform: rotate(360deg); } }
         @media (max-width: 560px) { .ss-product-form { grid-template-columns: 1fr !important; } }
       `}</style>
+    </div>
+  );
+}
+
+function emptyOfferDraft() {
+  return { titleEn: "", titleNp: "", descEn: "", descNp: "", productIds: [], comboPrice: "", active: true, image: null, color: C.wine700 };
+}
+
+function AdminOffers({ t, lang, dark, offers, setOffers, products }) {
+  const [draft, setDraft] = useState(emptyOfferDraft());
+  const [editingId, setEditingId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImageFile(file, 600);
+      setDraft((d) => ({ ...d, image: dataUrl }));
+    } catch (err) { /* ignore */ }
+    setUploading(false);
+  }
+
+  function resetForm() { setDraft(emptyOfferDraft()); setEditingId(null); if (fileRef.current) fileRef.current.value = ""; }
+
+  function toggleProduct(pid) {
+    setDraft((d) => ({
+      ...d,
+      productIds: d.productIds.includes(pid) ? d.productIds.filter((x) => x !== pid) : [...d.productIds, pid],
+    }));
+  }
+
+  function saveOffer() {
+    if (!draft.titleEn || !draft.comboPrice || draft.productIds.length === 0) return;
+    if (editingId) {
+      setOffers(offers.map((o) => (o.id === editingId ? { ...o, ...draft, comboPrice: Number(draft.comboPrice) } : o)));
+    } else {
+      const newOffer = { id: genId("offer"), ...draft, comboPrice: Number(draft.comboPrice), createdAt: new Date().toISOString() };
+      setOffers([newOffer, ...offers]);
+    }
+    resetForm();
+  }
+  function editOffer(o) {
+    setDraft({
+      titleEn: o.titleEn, titleNp: o.titleNp || "", descEn: o.descEn || "", descNp: o.descNp || "",
+      productIds: o.productIds || [], comboPrice: String(o.comboPrice || ""), active: !!o.active,
+      image: o.image || null, color: o.color || C.wine700,
+    });
+    setEditingId(o.id);
+  }
+  function deleteOffer(id) {
+    setOffers(offers.filter((o) => o.id !== id));
+    if (editingId === id) resetForm();
+  }
+  function toggleActive(o) {
+    setOffers(offers.map((x) => (x.id === o.id ? { ...x, active: !x.active } : x)));
+  }
+
+  const includedTotal = draft.productIds.reduce((s, pid) => {
+    const p = products.find((x) => x.id === pid);
+    if (!p) return s;
+    return s + Math.round(p.price * (1 - (p.discount || 0) / 100));
+  }, 0);
+
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{t.specialOffers}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>
+        {lang === "en"
+          ? "Create seasonal combo offers (e.g. Teej Special) by bundling existing products at a special price. Active offers appear on the homepage for every customer."
+          : "मौजुदा सामानहरू मिलाएर विशेष मूल्यमा मौसमी कम्बो अफर (जस्तै तीज स्पेशल) बनाउनुहोस्। सक्रिय अफरहरू सबै ग्राहकको गृहपृष्ठमा देखिन्छ।"}
+      </p>
+
+      <div style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+        <div className="ss-caption" style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>
+          {editingId ? t.edit : (lang === "en" ? "Create New Offer" : "नयाँ अफर बनाउनुहोस्")}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 16 }} className="ss-product-form">
+          <div>
+            <div onClick={() => fileRef.current?.click()} style={{
+              width: 110, height: 110, borderRadius: 12, border: `2px dashed ${C.gold400}77`, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", overflow: "hidden", background: dark ? C.plum950 : C.ivory100, flexDirection: "column", gap: 4,
+            }}>
+              {uploading ? <RefreshCw size={20} className="ss-spin" /> : draft.image ? <img src={draft.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (
+                <><Gift size={20} color={C.ink600} /><span style={{ fontSize: 10, color: C.ink600, textAlign: "center", padding: "0 6px" }}>{lang === "en" ? "Offer Photo" : "अफर फोटो"}</span></>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+            {draft.image && <button className="ss-btn ss-caption" onClick={() => setDraft((d) => ({ ...d, image: null }))} style={{ marginTop: 6, fontSize: 10, background: "none", color: C.rose500 }}>{t.remove}</button>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <FormRow label={lang === "en" ? "Offer Title (English)" : "अफर शीर्षक (अंग्रेजी)"}>
+              <input className="ss-focus" style={inputStyle(dark)} placeholder={lang === "en" ? "e.g. Teej Special Combo" : "जस्तै तीज स्पेशल कम्बो"} value={draft.titleEn} onChange={(e) => setDraft({ ...draft, titleEn: e.target.value })} />
+            </FormRow>
+            <FormRow label={lang === "en" ? "Offer Title (Nepali)" : "अफर शीर्षक (नेपाली)"}>
+              <input className="ss-focus" style={inputStyle(dark)} value={draft.titleNp} onChange={(e) => setDraft({ ...draft, titleNp: e.target.value })} />
+            </FormRow>
+            <FormRow label={lang === "en" ? "Description (English)" : "विवरण (अंग्रेजी)"}>
+              <input className="ss-focus" style={inputStyle(dark)} placeholder={lang === "en" ? "e.g. Bangles + Tikka + Earrings bundle" : ""} value={draft.descEn} onChange={(e) => setDraft({ ...draft, descEn: e.target.value })} />
+            </FormRow>
+            <FormRow label={lang === "en" ? "Description (Nepali)" : "विवरण (नेपाली)"}>
+              <input className="ss-focus" style={inputStyle(dark)} value={draft.descNp} onChange={(e) => setDraft({ ...draft, descNp: e.target.value })} />
+            </FormRow>
+            <FormRow label={t.comboPrice + " (NPR)"}>
+              <input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.comboPrice} onChange={(e) => setDraft({ ...draft, comboPrice: e.target.value })} />
+            </FormRow>
+            <div>
+              <label className="ss-caption" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>{lang === "en" ? "Original Total (auto)" : "सामान्य जम्मा (स्वतः)"}</label>
+              <div style={{ ...inputStyle(dark), display: "flex", alignItems: "center", color: C.ink600 }}>{fmtNPR(includedTotal)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <label className="ss-caption" style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 8 }}>
+            {lang === "en" ? "Select products included in this combo" : "यो कम्बोमा समावेश हुने सामानहरू छान्नुहोस्"}
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8, maxHeight: 220, overflowY: "auto", padding: 10, border: `1px solid ${C.gold400}33`, borderRadius: 10 }} className="ss-scroll">
+            {products.map((p) => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: 6, borderRadius: 8, background: draft.productIds.includes(p.id) ? (dark ? C.wine700 + "33" : C.rose300 + "33") : "transparent", cursor: "pointer" }}>
+                <input type="checkbox" checked={draft.productIds.includes(p.id)} onChange={() => toggleProduct(p.id)} />
+                <ProductImage p={p} size={26} />
+                <span style={{ flex: 1 }}>{lang === "en" ? p.nameEn : p.nameNp}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 13 }}>
+          <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
+          {lang === "en" ? "Active (visible to customers on homepage)" : "सक्रिय (गृहपृष्ठमा ग्राहकलाई देखिने)"}
+        </label>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="ss-btn ss-caption" onClick={saveOffer} style={{ background: C.wine700, color: "#fff", padding: "10px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 }}>{t.save}</button>
+          {editingId && <button className="ss-btn ss-caption" onClick={resetForm} style={{ background: "none", border: `1px solid ${C.gold400}55`, padding: "10px 20px", borderRadius: 10, fontSize: 13, color: dark ? C.ivory50 : C.ink900 }}>{t.cancel}</button>}
+        </div>
+      </div>
+
+      <div className="ss-caption" style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{offers.length} {lang === "en" ? "offers" : "अफरहरू"}</div>
+      {offers.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: C.ink600, border: `1px dashed ${C.gold400}44`, borderRadius: 14 }}>
+          {lang === "en" ? "No offers yet. Create your first combo offer above." : "अहिलेसम्म कुनै अफर छैन। माथि पहिलो कम्बो अफर बनाउनुहोस्।"}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {offers.map((o) => {
+            const included = (o.productIds || []).map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+            return (
+              <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${o.color || C.wine700}, ${C.plum950})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {o.image ? <img src={o.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Gift size={18} color="#fff" />}
+                </div>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{lang === "en" ? o.titleEn : (o.titleNp || o.titleEn)}</div>
+                  <div style={{ fontSize: 11.5, color: C.ink600 }}>{included.length} {lang === "en" ? "items" : "सामान"} · {fmtNPR(o.comboPrice)}</div>
+                </div>
+                <button className="ss-btn ss-caption" onClick={() => toggleActive(o)} style={{
+                  background: o.active ? "#2E9E5B22" : "#99999922", color: o.active ? "#2E9E5B" : C.ink600,
+                  padding: "6px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 5,
+                }}>
+                  <Tag size={12} /> {o.active ? (lang === "en" ? "Active" : "सक्रिय") : (lang === "en" ? "Hidden" : "लुकेको")}
+                </button>
+                <button className="ss-btn" onClick={() => editOffer(o)} style={{ background: "none", color: C.wine700 }}><Edit2 size={15} /></button>
+                <button className="ss-btn" onClick={() => deleteOffer(o.id)} style={{ background: "none", color: "#D14343" }}><Trash2 size={15} /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
