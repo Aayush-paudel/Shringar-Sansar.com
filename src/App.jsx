@@ -834,10 +834,10 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 16 }}>
         <button className="ss-btn" onClick={() => go("home")} style={{ background: "none", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(140deg, ${C.wine700}, ${C.plum950})`,
-            display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px solid ${C.gold400}`,
+            width: 44, height: 44, borderRadius: "50%", background: C.plum950,
+            display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px solid ${C.gold400}`, overflow: "hidden", flexShrink: 0,
           }}>
-            <span className="ss-display" style={{ color: C.gold300, fontWeight: 700, fontSize: 17 }}>SS</span>
+            <img src="/logo.png" alt="Shringar Sansar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ textAlign: "left" }}>
             <div className="ss-display" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: dark ? C.ivory50 : C.wine700 }}>{t.heroTitle}</div>
@@ -1919,16 +1919,38 @@ function InfoRowLight({ icon: Icon, text, dark }) {
 /* ============================================================
    FOOTER
    ============================================================ */
+function TiktokIcon({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M16.6 5.82c-.9-.98-1.4-2.26-1.4-3.62h-3.03v13.7c0 1.5-1.22 2.72-2.72 2.72a2.72 2.72 0 0 1-2.72-2.72 2.72 2.72 0 0 1 2.72-2.72c.28 0 .55.04.8.12V10.2a5.8 5.8 0 0 0-.8-.06A5.75 5.75 0 0 0 3.7 15.9a5.75 5.75 0 0 0 5.75 5.75 5.75 5.75 0 0 0 5.75-5.75V9.03a8.7 8.7 0 0 0 5.07 1.62V7.62a5.35 5.35 0 0 1-3.67-1.8Z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
 function Footer({ t, lang, dark, go }) {
   return (
     <footer style={{ background: C.plum950, color: C.ivory100, padding: "40px 20px 20px", marginTop: 20 }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 30 }}>
         <div>
-          <div className="ss-display" style={{ fontSize: 20, fontWeight: 700, color: C.gold300 }}>{SHOP.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", border: `1px solid ${C.gold400}66`, flexShrink: 0 }}>
+              <img src="/logo.png" alt="Shringar Sansar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+            <div className="ss-display" style={{ fontSize: 20, fontWeight: 700, color: C.gold300 }}>{SHOP.name}</div>
+          </div>
           <p style={{ fontSize: 12.5, marginTop: 8, opacity: 0.75, lineHeight: 1.6 }}>{SHOP.address}, {SHOP.postal}</p>
           <p style={{ fontSize: 12.5, opacity: 0.75 }}>{SHOP.landmark}</p>
-          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-            <Facebook size={16} color={C.gold400} /> <Instagram size={16} color={C.gold400} />
+          <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
+            <a href="https://www.facebook.com/shringar.sansar" target="_blank" rel="noopener noreferrer" title="Facebook" style={{ color: C.gold400, display: "flex" }}>
+              <Facebook size={17} color={C.gold400} />
+            </a>
+            <a href="https://www.tiktok.com/@shringarsansar9" target="_blank" rel="noopener noreferrer" title="TikTok" style={{ color: C.gold400, display: "flex" }}>
+              <TiktokIcon size={16} color={C.gold400} />
+            </a>
+            <Instagram size={16} color={C.gold400} style={{ opacity: 0.5 }} title={lang === "en" ? "Instagram (coming soon)" : "इन्स्टाग्राम (छिट्टै)"} />
           </div>
         </div>
         <div>
@@ -2006,8 +2028,8 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
     <div style={{ minHeight: "100vh", background: bg, color: fg, display: "flex" }} className="ss-admin-shell">
       <aside style={{ width: 220, background: C.plum950, color: C.ivory50, padding: 18, flexShrink: 0 }} className="ss-admin-sidebar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 26 }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.wine700, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.gold400}` }}>
-            <span className="ss-display" style={{ color: C.gold300, fontWeight: 700, fontSize: 13 }}>SS</span>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.plum950, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.gold400}`, overflow: "hidden", flexShrink: 0 }}>
+            <img src="/logo.png" alt="Shringar Sansar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
             <div className="ss-display" style={{ fontSize: 15, fontWeight: 700 }}>Admin Panel</div>
