@@ -329,9 +329,19 @@ const STR = {
   },
 };
 
-const PROVINCES = [
-  "Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim",
-];
+const PROVINCE_DISTRICTS = {
+  "Koshi": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
+  "Madhesh": ["Bara", "Dhanusha", "Mahottari", "Parsa", "Rautahat", "Saptari", "Sarlahi", "Siraha"],
+  "Bagmati": ["Bhaktapur", "Chitwan", "Dhading", "Dolakha", "Kathmandu", "Kavrepalanchok", "Lalitpur", "Makwanpur", "Nuwakot", "Ramechhap", "Rasuwa", "Sindhuli", "Sindhupalchok"],
+  "Gandaki": ["Baglung", "Gorkha", "Kaski", "Lamjung", "Manang", "Mustang", "Myagdi", "Nawalpur", "Parbat", "Syangja", "Tanahun"],
+  "Lumbini": ["Arghakhanchi", "Banke", "Bardiya", "Dang", "Eastern Rukum", "Gulmi", "Kapilvastu", "Parasi", "Palpa", "Pyuthan", "Rolpa", "Rupandehi"],
+  "Karnali": ["Dailekh", "Dolpa", "Humla", "Jajarkot", "Jumla", "Kalikot", "Mugu", "Salyan", "Surkhet", "Western Rukum"],
+  "Sudurpashchim": ["Achham", "Baitadi", "Bajhang", "Bajura", "Dadeldhura", "Darchula", "Doti", "Kailali", "Kanchanpur"],
+};
+const PROVINCES = Object.keys(PROVINCE_DISTRICTS);
+
+const NAME_REGEX = /^[A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+)+$/;
+const PHONE_REGEX = /^[9][6-8]\d{8}$/;
 
 const CATEGORIES = [
   { id: "necklace", en: "Necklace Sets", np: "माला सेट", icon: "💎" },
@@ -1619,7 +1629,9 @@ function Stepper({ steps, current, dark }) {
 function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpen, go, onOrderPlaced }) {
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState({ fullName: "", phone: "", province: "Bagmati", district: "", municipality: "", ward: "", landmark: "" });
+  const [addressErrors, setAddressErrors] = useState({});
   const [payment, setPayment] = useState("esewa");
+  const [proofFile, setProofFile] = useState(null);
   const [proofName, setProofName] = useState("");
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
@@ -1673,7 +1685,24 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
       setStep(1); return;
     }
     if (step === 1) {
-      if (!address.fullName || !address.phone || !address.district || !address.municipality || !address.ward) return;
+      const errs = {};
+      if (!NAME_REGEX.test(address.fullName.trim())) {
+        errs.fullName = lang === "en" ? "Enter your real full name (first and last name)." : "आफ्नो पूरा नाम राख्नुहोस् (नाम र थर)।";
+      }
+      if (!PHONE_REGEX.test(address.phone.trim())) {
+        errs.phone = lang === "en" ? "Enter a valid 10-digit Nepali mobile number." : "मान्य १० अंकको नेपाली मोबाइल नम्बर राख्नुहोस्।";
+      }
+      if (!address.district) {
+        errs.district = lang === "en" ? "Please select your district." : "कृपया आफ्नो जिल्ला छान्नुहोस्।";
+      }
+      if (!address.ward) {
+        errs.ward = lang === "en" ? "Please select your ward." : "कृपया आफ्नो वडा छान्नुहोस्।";
+      }
+      if (!address.municipality.trim()) {
+        errs.municipality = lang === "en" ? "Enter your municipality or rural municipality name." : "आफ्नो नगरपालिका वा गाउँपालिकाको नाम राख्नुहोस्।";
+      }
+      setAddressErrors(errs);
+      if (Object.keys(errs).length > 0) return;
       setStep(2); return;
     }
     if (step === 2) {
@@ -1682,6 +1711,7 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
         date: new Date().toISOString(),
         items: cartDetailed.map((c) => ({ id: c.id, name: c.product.nameEn, qty: c.qty, price: c.product.price })),
         address, payment, paymentLabel: payment === "esewa" ? t.esewa : payment === "bank" ? t.bank : t.cod,
+        paymentProof: payment === "bank" ? proofFile : null,
         subtotal, deliveryFee, codHandling, total,
         status: "pending",
       };
@@ -1719,18 +1749,39 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
       {step === 1 && (
         <div className="ss-fade-in">
           <div style={{ marginBottom: 12 }}><Badge tone="wine"><Truck size={12} /> {t.deliversAll}</Badge></div>
-          <FormRow label={t.fullName}><input className="ss-focus" style={inputStyle(dark)} value={address.fullName} onChange={(e) => setAddress({ ...address, fullName: e.target.value })} /></FormRow>
-          <FormRow label={t.phoneNumber}><input className="ss-focus" style={inputStyle(dark)} value={address.phone} onChange={(e) => setAddress({ ...address, phone: e.target.value })} /></FormRow>
+          <FormRow label={t.fullName}>
+            <input className="ss-focus" style={inputStyle(dark)} value={address.fullName} placeholder={lang === "en" ? "e.g. Priya Sharma" : "जस्तै प्रिया शर्मा"} onChange={(e) => setAddress({ ...address, fullName: e.target.value })} />
+            {addressErrors.fullName && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.fullName}</div>}
+          </FormRow>
+          <FormRow label={t.phoneNumber}>
+            <input className="ss-focus" style={inputStyle(dark)} value={address.phone} maxLength={10} placeholder="98XXXXXXXX" onChange={(e) => setAddress({ ...address, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+            {addressErrors.phone && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.phone}</div>}
+          </FormRow>
           <FormRow label={t.selectProvince}>
-            <select className="ss-focus" style={inputStyle(dark)} value={address.province} onChange={(e) => setAddress({ ...address, province: e.target.value })}>
+            <select className="ss-focus" style={inputStyle(dark)} value={address.province} onChange={(e) => setAddress({ ...address, province: e.target.value, district: "" })}>
               {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </FormRow>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <FormRow label={t.district}><input className="ss-focus" style={inputStyle(dark)} value={address.district} onChange={(e) => setAddress({ ...address, district: e.target.value })} /></FormRow>
-            <FormRow label={t.ward}><input className="ss-focus" style={inputStyle(dark)} value={address.ward} onChange={(e) => setAddress({ ...address, ward: e.target.value })} /></FormRow>
+            <FormRow label={t.district}>
+              <select className="ss-focus" style={inputStyle(dark)} value={address.district} onChange={(e) => setAddress({ ...address, district: e.target.value })}>
+                <option value="">{lang === "en" ? "Select district" : "जिल्ला छान्नुहोस्"}</option>
+                {(PROVINCE_DISTRICTS[address.province] || []).map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              {addressErrors.district && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.district}</div>}
+            </FormRow>
+            <FormRow label={t.ward}>
+              <select className="ss-focus" style={inputStyle(dark)} value={address.ward} onChange={(e) => setAddress({ ...address, ward: e.target.value })}>
+                <option value="">{lang === "en" ? "Select ward" : "वडा छान्नुहोस्"}</option>
+                {Array.from({ length: 33 }, (_, i) => i + 1).map((w) => <option key={w} value={w}>{lang === "en" ? "Ward" : "वडा"} {w}</option>)}
+              </select>
+              {addressErrors.ward && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.ward}</div>}
+            </FormRow>
           </div>
-          <FormRow label={t.municipality}><input className="ss-focus" style={inputStyle(dark)} value={address.municipality} onChange={(e) => setAddress({ ...address, municipality: e.target.value })} /></FormRow>
+          <FormRow label={t.municipality}>
+            <input className="ss-focus" style={inputStyle(dark)} value={address.municipality} placeholder={lang === "en" ? "e.g. Bharatpur Metropolitan City" : "जस्तै भरतपुर महानगरपालिका"} onChange={(e) => setAddress({ ...address, municipality: e.target.value })} />
+            {addressErrors.municipality && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.municipality}</div>}
+          </FormRow>
           <FormRow label={t.landmark}><input className="ss-focus" style={inputStyle(dark)} value={address.landmark} onChange={(e) => setAddress({ ...address, landmark: e.target.value })} /></FormRow>
           <div style={{ marginTop: 6, fontSize: 12.5, color: isValley ? "#2E9E5B" : C.ink600, display: "flex", alignItems: "center", gap: 6 }}>
             <Clock size={13} /> {isValley ? t.fasterDelivery : t.standardDelivery}
@@ -1756,7 +1807,15 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
                 <p style={{ marginBottom: 8 }}>NIC Asia Bank · Shringar Sansar · A/C 0123-456-7890</p>
                 <label className="ss-btn ss-caption" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.wine700, color: "#fff", padding: "9px 14px", borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
                   <Upload size={13} /> {t.uploadProof}
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setProofName(e.target.files?.[0]?.name || "")} />
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setProofName(file.name);
+                    try {
+                      const dataUrl = await resizeImageFile(file, 700);
+                      setProofFile(dataUrl);
+                    } catch (err) { /* ignore */ }
+                  }} />
                 </label>
                 {proofName && <span style={{ marginLeft: 8, fontSize: 12, color: "#2E9E5B" }}><Check size={12} style={{ verticalAlign: "middle" }} /> {proofName}</span>}
               </div>
@@ -1787,6 +1846,7 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
 function inputStyle(dark) {
   return { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.gold400}55`, background: dark ? C.plum900 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 13.5 };
 }
+const fieldErrorStyle = { color: "#D14343", fontSize: 11.5, marginTop: 4, display: "flex", alignItems: "center", gap: 4 };
 function FormRow({ label, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -1979,7 +2039,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  const DEMO_PASSWORD = "!@#$%";
+  const DEMO_PASSWORD = "shringar123";
   function submit() {
     if (pw === DEMO_PASSWORD) onSuccess();
     else setError(t.wrongPassword);
@@ -1991,7 +2051,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
           <Lock size={22} color="#fff" />
         </div>
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
-        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo Password=!@#$% </p>
+        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
         <div style={{ position: "relative", marginBottom: 10 }}>
           <input type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder={t.adminPassword} className="ss-focus" style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14 }} />
@@ -2449,11 +2509,14 @@ function AdminOffers({ t, lang, dark, offers, setOffers, products }) {
 }
 
 function AdminOrders({ t, lang, dark, orders, setOrders }) {
+  const [expanded, setExpanded] = useState({});
+  const [zoomImage, setZoomImage] = useState(null);
+
   function updateStatus(id, status) {
     setOrders(orders.map((o) => (o.id === id ? { ...o, status } : o)));
   }
   function exportCSV() {
-    const rows = [["Order ID", "Date", "Customer", "Total", "Status"], ...orders.map((o) => [o.id, o.date, o.address.fullName, o.total, o.status])];
+    const rows = [["Order ID", "Date", "Customer", "Phone", "Total", "Status"], ...orders.map((o) => [o.id, o.date, o.address.fullName, o.address.phone, o.total, o.status])];
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -2470,23 +2533,88 @@ function AdminOrders({ t, lang, dark, orders, setOrders }) {
         <div style={{ padding: 40, textAlign: "center", color: C.ink600 }}>{lang === "en" ? "No orders yet." : "अहिलेसम्म अर्डर छैन।"}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {orders.map((o) => (
-            <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{o.id} — {o.address.fullName}</div>
-                  <div style={{ fontSize: 11.5, color: C.ink600 }}>{new Date(o.date).toLocaleString()} · {o.address.province} · {o.paymentLabel}</div>
+          {orders.map((o) => {
+            const isOpen = !!expanded[o.id];
+            return (
+              <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 16 }}>
+                <button className="ss-btn" onClick={() => setExpanded((e) => ({ ...e, [o.id]: !e[o.id] }))} style={{ width: "100%", background: "none", textAlign: "left", padding: 0, color: "inherit" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                        {o.id} — {o.address.fullName}
+                        {o.payment === "bank" && <Badge tone="gold"><Banknote size={11} /> {lang === "en" ? "Proof attached" : "प्रमाण संलग्न"}</Badge>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: C.ink600 }}>{new Date(o.date).toLocaleString()} · {o.address.province} · {o.paymentLabel} · {o.address.phone}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNPR(o.total)}</div>
+                      <ChevronDown size={16} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                    </div>
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="ss-fade-in" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.gold400}22` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="ss-admin-grid">
+                      <div>
+                        <div className="ss-caption" style={{ fontSize: 11, fontWeight: 700, color: C.gold400, marginBottom: 6, textTransform: "uppercase" }}>{lang === "en" ? "Items Ordered" : "अर्डर गरिएका सामान"}</div>
+                        {(o.items || []).map((it, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0" }}>
+                            <span>{it.name} × {it.qty}</span>
+                            <span>{fmtNPR((it.price || 0) * it.qty)}</span>
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginTop: 8, color: C.ink600 }}>
+                          <span>{t.subtotal}</span><span>{fmtNPR(o.subtotal)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.ink600 }}>
+                          <span>{t.deliveryFee}</span><span>{fmtNPR(o.deliveryFee)}</span>
+                        </div>
+
+                        <div className="ss-caption" style={{ fontSize: 11, fontWeight: 700, color: C.gold400, margin: "14px 0 6px", textTransform: "uppercase" }}>{lang === "en" ? "Delivery Contact" : "डेलिभरी सम्पर्क"}</div>
+                        <div style={{ fontSize: 13 }}>{o.address.fullName}</div>
+                        <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><Phone size={12} /> {o.address.phone}</div>
+                        <div style={{ fontSize: 13, marginTop: 4 }}>{o.address.municipality}-{o.address.ward}, {o.address.district}, {o.address.province}</div>
+                        {o.address.landmark && <div style={{ fontSize: 12.5, color: C.ink600 }}>{lang === "en" ? "Landmark" : "ल्यान्डमार्क"}: {o.address.landmark}</div>}
+                      </div>
+
+                      <div>
+                        <div className="ss-caption" style={{ fontSize: 11, fontWeight: 700, color: C.gold400, marginBottom: 6, textTransform: "uppercase" }}>{t.paymentMethod}</div>
+                        <div style={{ fontSize: 13, marginBottom: 8 }}>{o.paymentLabel}</div>
+                        {o.payment === "bank" && (
+                          o.paymentProof ? (
+                            <div>
+                              <div style={{ fontSize: 12, color: C.ink600, marginBottom: 6 }}>{t.uploadProof}:</div>
+                              <img
+                                src={o.paymentProof} alt="Payment proof" onClick={() => setZoomImage(o.paymentProof)}
+                                style={{ width: "100%", maxWidth: 260, borderRadius: 10, border: `1px solid ${C.gold400}44`, cursor: "zoom-in" }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12.5, color: C.rose500, display: "flex", alignItems: "center", gap: 6 }}>
+                              <AlertCircle size={13} /> {lang === "en" ? "No proof image was uploaded by the customer." : "ग्राहकले कुनै प्रमाण फोटो अपलोड गरेनन्।"}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="ss-caption" style={{ fontSize: 11, color: C.ink600 }}>{t.updateStatus}:</span>
+                  <select value={o.status} onChange={(e) => updateStatus(o.id, e.target.value)} className="ss-focus" style={{ ...inputStyle(dark), width: "auto", padding: "6px 10px", fontSize: 12 }}>
+                    {["pending", "processing", "shipped", "delivered", "cancelled"].map((s) => <option key={s} value={s}>{t[s]}</option>)}
+                  </select>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNPR(o.total)}</div>
               </div>
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="ss-caption" style={{ fontSize: 11, color: C.ink600 }}>{t.updateStatus}:</span>
-                <select value={o.status} onChange={(e) => updateStatus(o.id, e.target.value)} className="ss-focus" style={{ ...inputStyle(dark), width: "auto", padding: "6px 10px", fontSize: 12 }}>
-                  {["pending", "processing", "shipped", "delivered", "cancelled"].map((s) => <option key={s} value={s}>{t[s]}</option>)}
-                </select>
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+      {zoomImage && (
+        <div onClick={() => setZoomImage(null)} style={{ position: "fixed", inset: 0, background: "#000c", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, cursor: "zoom-out" }}>
+          <img src={zoomImage} alt="Payment proof" style={{ maxWidth: "92vw", maxHeight: "92vh", borderRadius: 12, border: `1px solid ${C.gold400}55` }} />
         </div>
       )}
     </div>
