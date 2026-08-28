@@ -53,6 +53,7 @@ const STR = {
     featured: "Featured Pieces",
     viewAll: "View All",
     addToCart: "Add to Cart",
+    selectOptions: "Select Options",
     outOfStock: "Out of Stock",
     testimonials: "What Our Customers Say",
     counters: "Trusted by Bharatpur & Beyond",
@@ -75,6 +76,18 @@ const STR = {
     login: "Login",
     logout: "Logout",
     myOrders: "My Orders",
+    wishlist: "Wishlist",
+    emptyWishlist: "Your wishlist is empty",
+    recentlyViewed: "Recently Viewed",
+    writeReview: "Write a Review",
+    yourRating: "Your Rating",
+    yourReview: "Your Review",
+    submitReview: "Submit Review",
+    loginToReview: "Please verify your email to write a review.",
+    verifiedPurchase: "Verified Purchase",
+    noReviewsYet: "No reviews yet. Be the first!",
+    selectVariant: "Select an option",
+    reviewSubmitted: "Thank you for your review!",
     admin: "Admin",
     home: "Home",
     shop: "Shop",
@@ -196,6 +209,7 @@ const STR = {
     featured: "विशेष सामानहरू",
     viewAll: "सबै हेर्नुहोस्",
     addToCart: "कार्टमा राख्नुहोस्",
+    selectOptions: "विकल्प छान्नुहोस्",
     outOfStock: "स्टक छैन",
     testimonials: "ग्राहकका अनुभवहरू",
     counters: "भरतपुर र बाहिर पनि भरपर्दो",
@@ -218,6 +232,18 @@ const STR = {
     login: "लगइन",
     logout: "लगआउट",
     myOrders: "मेरो अर्डरहरू",
+    wishlist: "मनपर्ने सूची",
+    emptyWishlist: "तपाईंको मनपर्ने सूची खाली छ",
+    recentlyViewed: "भर्खरै हेरिएको",
+    writeReview: "समीक्षा लेख्नुहोस्",
+    yourRating: "तपाईंको रेटिङ",
+    yourReview: "तपाईंको समीक्षा",
+    submitReview: "समीक्षा पेश गर्नुहोस्",
+    loginToReview: "समीक्षा लेख्न कृपया आफ्नो इमेल प्रमाणित गर्नुहोस्।",
+    verifiedPurchase: "प्रमाणित खरिद",
+    noReviewsYet: "अहिलेसम्म कुनै समीक्षा छैन। पहिलो हुनुहोस्!",
+    selectVariant: "विकल्प छान्नुहोस्",
+    reviewSubmitted: "तपाईंको समीक्षाको लागि धन्यवाद!",
     admin: "एडमिन",
     home: "गृहपृष्ठ",
     shop: "पसल",
@@ -396,9 +422,9 @@ function whatsappLink(message) {
 const SEED_PRODUCTS = [
   { id: "p1", nameEn: "Royal Kundan Necklace Set", nameNp: "रोयल कुन्दन माला सेट", category: "necklace", price: 4500, discount: 10, stock: 6, featured: true, rating: 4.8, reviews: 32, emoji: "💎", color: C.wine700 },
   { id: "p2", nameEn: "Gold Plated Jhumka Earrings", nameNp: "गोल्ड प्लेटेड झुम्का", category: "earrings", price: 1200, discount: 0, stock: 14, featured: true, rating: 4.7, reviews: 51, emoji: "✨", color: C.gold400 },
-  { id: "p3", nameEn: "Traditional Glass Bangles (Set of 12)", nameNp: "परम्परागत चुरा (१२ को सेट)", category: "bangles", price: 650, discount: 5, stock: 25, featured: true, rating: 4.6, reviews: 88, emoji: "⭕", color: C.rose500 },
+  { id: "p3", nameEn: "Traditional Glass Bangles (Set of 12)", nameNp: "परम्परागत चुरा (१२ को सेट)", category: "bangles", price: 650, discount: 5, stock: 25, featured: true, rating: 4.6, reviews: 88, emoji: "⭕", color: C.rose500, variants: ["2.4in", "2.6in", "2.8in"] },
   { id: "p4", nameEn: "Bridal Mang Tikka", nameNp: "दुलही मांग टीका", category: "tikka", price: 1800, discount: 15, stock: 3, featured: true, rating: 4.9, reviews: 19, emoji: "👑", color: C.gold300 },
-  { id: "p5", nameEn: "Antique Finish Ring", nameNp: "एन्टिक फिनिस औंठी", category: "rings", price: 950, discount: 0, stock: 18, featured: false, rating: 4.5, reviews: 27, emoji: "💍", color: C.wine600 },
+  { id: "p5", nameEn: "Antique Finish Ring", nameNp: "एन्टिक फिनिस औंठी", category: "rings", price: 950, discount: 0, stock: 18, featured: false, rating: 4.5, reviews: 27, emoji: "💍", color: C.wine600, variants: ["6", "7", "8", "9"] },
   { id: "p6", nameEn: "Herbal Sindoor Box", nameNp: "हर्बल सिन्दूर बट्टा", category: "cosmetics", price: 250, discount: 0, stock: 40, featured: false, rating: 4.4, reviews: 63, emoji: "💄", color: C.rose300 },
   { id: "p7", nameEn: "Pearl Drop Earrings", nameNp: "पर्ल ड्रप कान का बाला", category: "earrings", price: 1450, discount: 8, stock: 9, featured: false, rating: 4.6, reviews: 22, emoji: "✨", color: C.plum900 },
   { id: "p8", nameEn: "Temple Design Necklace", nameNp: "टेम्पल डिजाइन माला", category: "necklace", price: 3800, discount: 0, stock: 5, featured: false, rating: 4.8, reviews: 15, emoji: "💎", color: C.wine700 },
@@ -501,6 +527,18 @@ function getChatReply(lang, rawMessage) {
    UTILITIES
    ============================================================ */
 const fmtNPR = (n) => "Rs. " + Number(n || 0).toLocaleString("en-IN");
+
+function getProductReviews(reviews, productId) {
+  return (reviews || []).filter((r) => r.productId === productId);
+}
+function getRatingStats(product, reviews) {
+  const real = getProductReviews(reviews, product.id);
+  if (real.length > 0) {
+    const avg = real.reduce((s, r) => s + r.rating, 0) / real.length;
+    return { rating: Math.round(avg * 10) / 10, count: real.length };
+  }
+  return { rating: product.rating || 0, count: product.reviews || 0 };
+}
 
 const genId = (prefix) =>
   prefix + "-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -698,6 +736,9 @@ export default function ShringarSansarApp() {
   const [toast, setToast] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [cloudReady, setCloudReady] = useState(false);
 
   const t = STR[lang];
@@ -743,6 +784,7 @@ export default function ShringarSansarApp() {
         setProducts(cloud.products);
         setLoginHistory(Array.isArray(cloud.loginHistory) ? cloud.loginHistory : []);
         setOffers(Array.isArray(cloud.offers) ? cloud.offers : []);
+        setReviews(Array.isArray(cloud.reviews) ? cloud.reviews : []);
         setCloudReady(true);
       } else {
         // Cloud unreachable or empty — fall back to local copy, and if this
@@ -754,7 +796,7 @@ export default function ShringarSansarApp() {
           setProducts(SEED_PRODUCTS);
         }
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [] });
           if (seeded) setCloudReady(true);
         }
       }
@@ -763,6 +805,10 @@ export default function ShringarSansarApp() {
       setCart(storedCart || []);
       const storedOrders = await storageGet("orders", false, []);
       setOrders(storedOrders || []);
+      const storedWishlist = await storageGet("wishlist", false, []);
+      setWishlist(storedWishlist || []);
+      const storedRecentlyViewed = await storageGet("recently-viewed", false, []);
+      setRecentlyViewed(storedRecentlyViewed || []);
       const storedLang = await storageGet("pref-lang", false, "en");
       setLang(storedLang || "en");
       const storedTheme = await storageGet("pref-theme", false, "light");
@@ -786,26 +832,56 @@ export default function ShringarSansarApp() {
   useEffect(() => { if (booted) storageSet("cart", cart, false); }, [cart, booted]);
   useEffect(() => { if (booted) storageSet("orders", orders, false); }, [orders, booted]);
   useEffect(() => { if (booted) storageSet("auth", auth, false); }, [auth, booted]);
+  useEffect(() => { if (booted) storageSet("wishlist", wishlist, false); }, [wishlist, booted]);
+  useEffect(() => { if (booted) storageSet("recently-viewed", recentlyViewed, false); }, [recentlyViewed, booted]);
 
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory, offers });
-  }, [loginHistory, offers]);
+    await cloudSave({ products: next, loginHistory, offers, reviews });
+  }, [loginHistory, offers, reviews]);
 
   const persistOffers = useCallback(async (next) => {
     setOffers(next);
-    await cloudSave({ products, loginHistory, offers: next });
-  }, [products, loginHistory]);
+    await cloudSave({ products, loginHistory, offers: next, reviews });
+  }, [products, loginHistory, reviews]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next, offers });
+      cloudSave({ products, loginHistory: next, offers, reviews });
       return next;
     });
-  }, [products, offers]);
+  }, [products, offers, reviews]);
+
+  const addReview = useCallback((review) => {
+    setReviews((prev) => {
+      const next = [review, ...prev];
+      cloudSave({ products, loginHistory, offers, reviews: next });
+      return next;
+    });
+  }, [products, loginHistory, offers]);
+
+  const deleteReview = useCallback((reviewId) => {
+    setReviews((prev) => {
+      const next = prev.filter((r) => r.id !== reviewId);
+      cloudSave({ products, loginHistory, offers, reviews: next });
+      return next;
+    });
+  }, [products, loginHistory, offers]);
+
+  function toggleWishlist(productId) {
+    setWishlist((prev) => {
+      const has = prev.includes(productId);
+      showToast(has ? (lang === "en" ? "Removed from wishlist" : "मनपर्ने सूचीबाट हटाइयो") : (lang === "en" ? "Added to wishlist" : "मनपर्ने सूचीमा थपियो"));
+      return has ? prev.filter((id) => id !== productId) : [...prev, productId];
+    });
+  }
+
+  function recordRecentlyViewed(productId) {
+    setRecentlyViewed((prev) => [productId, ...prev.filter((id) => id !== productId)].slice(0, 12));
+  }
 
   /* ---------- cart helpers ---------- */
   const cartDetailed = useMemo(
@@ -833,11 +909,11 @@ export default function ShringarSansarApp() {
     return s + price * c.qty;
   }, 0);
 
-  function addToCart(productId, qty = 1) {
+  function addToCart(productId, qty = 1, variant = null) {
     setCart((prev) => {
-      const exists = prev.find((c) => c.id === productId);
-      if (exists) return prev.map((c) => (c.id === productId ? { ...c, qty: c.qty + qty } : c));
-      return [...prev, { id: productId, qty }];
+      const exists = prev.find((c) => c.id === productId && (c.variant || null) === variant);
+      if (exists) return prev.map((c) => (c === exists ? { ...c, qty: c.qty + qty } : c));
+      return [...prev, { id: productId, qty, variant }];
     });
     showToast(lang === "en" ? "Added to cart" : "कार्टमा थपियो");
     setCartOpen(true);
@@ -847,16 +923,20 @@ export default function ShringarSansarApp() {
     setCart((prev) => {
       const exists = prev.find((c) => c.id === cartId);
       if (exists) return prev.map((c) => (c.id === cartId ? { ...c, qty: c.qty + qty } : c));
-      return [...prev, { id: cartId, qty }];
+      return [...prev, { id: cartId, qty, variant: null }];
     });
     showToast(t.comboAdded);
     setCartOpen(true);
   }
-  function setCartQty(productId, qty) {
-    setCart((prev) => (qty <= 0 ? prev.filter((c) => c.id !== productId) : prev.map((c) => (c.id === productId ? { ...c, qty } : c))));
+  function setCartQty(productId, variant, qty) {
+    setCart((prev) =>
+      qty <= 0
+        ? prev.filter((c) => !(c.id === productId && (c.variant || null) === (variant || null)))
+        : prev.map((c) => (c.id === productId && (c.variant || null) === (variant || null) ? { ...c, qty } : c))
+    );
   }
-  function removeFromCart(productId) {
-    setCart((prev) => prev.filter((c) => c.id !== productId));
+  function removeFromCart(productId, variant) {
+    setCart((prev) => prev.filter((c) => !(c.id === productId && (c.variant || null) === (variant || null))));
   }
 
   /* ---------- routing helper ---------- */
@@ -951,6 +1031,7 @@ export default function ShringarSansarApp() {
           orders={orders} setOrders={setOrders}
           visitorCount={visitorCount} loginHistory={loginHistory}
           offers={offers} setOffers={persistOffers}
+          reviews={reviews} deleteReview={deleteReview}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -962,15 +1043,30 @@ export default function ShringarSansarApp() {
             onLogout={() => { setAuth({ email: null, verified: false }); showToast(lang === "en" ? "Signed out" : "साइन आउट भयो"); }}
             go={go} route={route} dark={dark}
             onAdminClick={() => setRoute({ page: "admin-gate" })}
-            searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+            searchQuery={searchQuery} setSearchQuery={setSearchQuery} wishlistCount={wishlist.length}
           />
 
           <main>
             {route.page === "home" && (
-              <HomePage t={t} lang={lang} dark={dark} products={products} offers={offers} go={go} addToCart={addToCart} addComboToCart={addComboToCart} visitorCount={visitorCount} />
+              <HomePage
+                t={t} lang={lang} dark={dark} products={products} offers={offers} go={go} addToCart={addToCart} addComboToCart={addComboToCart}
+                visitorCount={visitorCount} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist}
+                recentlyViewed={recentlyViewed} recordRecentlyViewed={recordRecentlyViewed} auth={auth}
+                orders={orders} addReview={addReview} onRequestLogin={() => setLoginOpen(true)}
+              />
             )}
             {route.page === "shop" && (
-              <ShopPage t={t} lang={lang} dark={dark} products={products} addToCart={addToCart} initialQuery={searchQuery} />
+              <ShopPage
+                t={t} lang={lang} dark={dark} products={products} addToCart={addToCart} initialQuery={searchQuery}
+                reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist} recordRecentlyViewed={recordRecentlyViewed}
+                auth={auth} orders={orders} addReview={addReview} onRequestLogin={() => setLoginOpen(true)}
+              />
+            )}
+            {route.page === "wishlist" && (
+              <WishlistPage
+                t={t} lang={lang} dark={dark} products={products} wishlist={wishlist} toggleWishlist={toggleWishlist}
+                reviews={reviews} addToCart={addToCart} go={go}
+              />
             )}
             {route.page === "cart" && (
               <CartPage
@@ -1035,7 +1131,7 @@ export default function ShringarSansarApp() {
 /* ============================================================
    HEADER
    ============================================================ */
-function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onLoginClick, auth, onLogout, go, route, dark, onAdminClick, searchQuery, setSearchQuery }) {
+function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onLoginClick, auth, onLogout, go, route, dark, onAdminClick, searchQuery, setSearchQuery, wishlistCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const navItems = [
@@ -1115,6 +1211,16 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           </div>
         )}
 
+        <button className="ss-btn" onClick={() => go("wishlist")} title={t.wishlist} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+          <Heart size={19} />
+          {wishlistCount > 0 && (
+            <span style={{
+              position: "absolute", top: -6, right: -8, background: C.rose500, color: "#fff", fontSize: 10, fontWeight: 700,
+              borderRadius: 999, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
+            }}>{wishlistCount}</span>
+          )}
+        </button>
+
         <button className="ss-btn" onClick={onCartClick} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <ShoppingBag size={20} />
           {cartCount > 0 && (
@@ -1187,9 +1293,15 @@ function AnimatedCounter({ to, label, dark }) {
   );
 }
 
-function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCart, visitorCount }) {
+function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCart, visitorCount, reviews, wishlist, toggleWishlist, recentlyViewed, recordRecentlyViewed, auth, orders, addReview, onRequestLogin }) {
   const featured = products.filter((p) => p.featured);
   const [tIndex, setTIndex] = useState(0);
+  const [quickView, setQuickView] = useState(null);
+  const recentProducts = (recentlyViewed || []).map((id) => products.find((p) => p.id === id)).filter(Boolean).slice(0, 8);
+  function openQuickView(p) {
+    recordRecentlyViewed && recordRecentlyViewed(p.id);
+    setQuickView(p);
+  }
   useEffect(() => {
     const id = setInterval(() => setTIndex((i) => (i + 1) % SEED_TESTIMONIALS.length), 4500);
     return () => clearInterval(id);
@@ -1304,9 +1416,30 @@ function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCa
           </button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 18, marginTop: 22 }}>
-          {featured.map((p) => <ProductCard key={p.id} p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} />)}
+          {featured.map((p) => <ProductCard key={p.id} p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} onQuickView={openQuickView} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist} />)}
         </div>
       </section>
+
+      {recentProducts.length > 0 && (
+        <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px 40px" }}>
+          <SectionHeading title={t.recentlyViewed} dark={dark} />
+          <div className="ss-scroll" style={{ display: "flex", gap: 16, overflowX: "auto", marginTop: 22, paddingBottom: 6 }}>
+            {recentProducts.map((p) => (
+              <div key={p.id} style={{ minWidth: 190, maxWidth: 190, flexShrink: 0 }}>
+                <ProductCard p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} onQuickView={openQuickView} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {quickView && (
+        <QuickViewModal
+          p={quickView} t={t} lang={lang} dark={dark} addToCart={addToCart} onClose={() => setQuickView(null)}
+          wishlist={wishlist} toggleWishlist={toggleWishlist} reviews={reviews} auth={auth} orders={orders}
+          addReview={addReview} onRequestLogin={onRequestLogin}
+        />
+      )}
 
       {/* COUNTERS */}
       <section style={{ background: dark ? C.plum900 : C.ivory100, padding: "50px 20px" }}>
@@ -1462,15 +1595,29 @@ function OfferDetailModal({ offer, t, lang, dark, products, addComboToCart, onCl
   );
 }
 
-function ProductCard({ p, t, lang, dark, addToCart, onQuickView }) {
+function ProductCard({ p, t, lang, dark, addToCart, onQuickView, reviews, wishlist, toggleWishlist }) {
   const finalPrice = Math.round(p.price * (1 - (p.discount || 0) / 100));
   const name = lang === "en" ? p.nameEn : (p.nameNp || p.nameEn);
+  const stats = getRatingStats(p, reviews);
+  const isWishlisted = (wishlist || []).includes(p.id);
   return (
     <div className="ss-card ss-fade-in" style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", display: "flex", justifyContent: "center", cursor: "pointer" }}
         onClick={() => onQuickView && onQuickView(p)}>
         <ProductImage p={p} size={168} square />
         {p.discount > 0 && <div style={{ position: "absolute", top: 10, left: 10 }}><Badge tone="wine">-{p.discount}%</Badge></div>}
+        {toggleWishlist && (
+          <button
+            className="ss-btn" onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+            title={lang === "en" ? "Save to wishlist" : "मनपर्ने सूचीमा राख्नुहोस्"}
+            style={{
+              position: "absolute", top: 10, right: 10, width: 30, height: 30, borderRadius: "50%",
+              background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Heart size={15} fill={isWishlisted ? "#E3506D" : "none"} color={isWishlisted ? "#E3506D" : "#fff"} />
+          </button>
+        )}
         {p.stock === 0 && <div style={{ position: "absolute", inset: 0, background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span className="ss-caption" style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>{t.outOfStock}</span>
         </div>}
@@ -1482,20 +1629,20 @@ function ProductCard({ p, t, lang, dark, addToCart, onQuickView }) {
         </span>
         <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3, minHeight: 36 }}>{name}</span>
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.ink600 }}>
-          <Star size={12} fill={C.gold400} color={C.gold400} /> {p.rating} <span style={{ opacity: 0.6 }}>({p.reviews})</span>
+          <Star size={12} fill={C.gold400} color={C.gold400} /> {stats.count > 0 ? stats.rating : "—"} <span style={{ opacity: 0.6 }}>({stats.count})</span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
           <span style={{ fontWeight: 700, fontSize: 16, color: C.wine700 }}>{fmtNPR(finalPrice)}</span>
           {p.discount > 0 && <span style={{ fontSize: 12, textDecoration: "line-through", color: C.ink600, opacity: 0.6 }}>{fmtNPR(p.price)}</span>}
         </div>
         <button
-          className="ss-btn ss-caption" disabled={p.stock === 0} onClick={() => addToCart(p.id)}
+          className="ss-btn ss-caption" disabled={p.stock === 0} onClick={() => (p.variants?.length ? (onQuickView && onQuickView(p)) : addToCart(p.id))}
           style={{
             marginTop: 6, background: p.stock === 0 ? "#999" : C.wine700, color: "#fff", padding: "9px 12px",
             borderRadius: 10, fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             opacity: p.stock === 0 ? 0.6 : 1, cursor: p.stock === 0 ? "not-allowed" : "pointer",
           }}>
-          <ShoppingBag size={14} /> {t.addToCart}
+          <ShoppingBag size={14} /> {p.variants?.length ? t.selectOptions : t.addToCart}
         </button>
       </div>
     </div>
@@ -1545,12 +1692,16 @@ function InfoRow({ icon: Icon, text, sub }) {
 /* ============================================================
    SHOP PAGE
    ============================================================ */
-function ShopPage({ t, lang, dark, products, addToCart, initialQuery }) {
+function ShopPage({ t, lang, dark, products, addToCart, initialQuery, reviews, wishlist, toggleWishlist, recordRecentlyViewed, auth, orders, addReview, onRequestLogin }) {
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState(initialQuery || "");
   const [sort, setSort] = useState("newest");
   const [maxPrice, setMaxPrice] = useState(10000);
   const [quickView, setQuickView] = useState(null);
+  function openQuickView(p) {
+    recordRecentlyViewed && recordRecentlyViewed(p.id);
+    setQuickView(p);
+  }
 
   let list = products.filter((p) => (category === "all" || p.category === category))
     .filter((p) => (query ? (p.nameEn + p.nameNp).toLowerCase().includes(query.toLowerCase()) : true))
@@ -1597,12 +1748,18 @@ function ShopPage({ t, lang, dark, products, addToCart, initialQuery }) {
           <div style={{ padding: 50, textAlign: "center", color: C.ink600 }}>{t.noProducts}</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginTop: 18 }}>
-            {list.map((p) => <ProductCard key={p.id} p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} onQuickView={setQuickView} />)}
+            {list.map((p) => <ProductCard key={p.id} p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} onQuickView={openQuickView} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist} />)}
           </div>
         )}
       </div>
 
-      {quickView && <QuickViewModal p={quickView} t={t} lang={lang} dark={dark} addToCart={addToCart} onClose={() => setQuickView(null)} />}
+      {quickView && (
+        <QuickViewModal
+          p={quickView} t={t} lang={lang} dark={dark} addToCart={addToCart} onClose={() => setQuickView(null)}
+          wishlist={wishlist} toggleWishlist={toggleWishlist} reviews={reviews} auth={auth} orders={orders}
+          addReview={addReview} onRequestLogin={onRequestLogin}
+        />
+      )}
 
       <style>{`@media (max-width: 780px) { .ss-shop-layout { grid-template-columns: 1fr !important; } }`}</style>
     </div>
@@ -1617,30 +1774,94 @@ function FilterBtn({ active, label, onClick, dark }) {
   );
 }
 
-function QuickViewModal({ p, t, lang, dark, addToCart, onClose }) {
+function QuickViewModal({ p, t, lang, dark, addToCart, onClose, wishlist, toggleWishlist, reviews, auth, orders, addReview, onRequestLogin }) {
   const [qty, setQty] = useState(1);
+  const [variant, setVariant] = useState(p.variants?.length ? null : undefined);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHoverRating, setReviewHoverRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const finalPrice = Math.round(p.price * (1 - (p.discount || 0) / 100));
+  const isWishlisted = (wishlist || []).includes(p.id);
+  const stats = getRatingStats(p, reviews);
+  const productReviews = getProductReviews(reviews, p.id);
+  const needsVariant = p.variants?.length > 0;
+  const canAdd = p.stock > 0 && (!needsVariant || variant);
+
+  function handleAddToCart() {
+    if (!canAdd) return;
+    addToCart(p.id, qty, needsVariant ? variant : null);
+    onClose();
+  }
+
+  function handleSubmitReview() {
+    if (!auth.verified) { onRequestLogin && onRequestLogin(); return; }
+    if (reviewRating < 1 || !reviewComment.trim()) return;
+    const hasPurchased = (orders || []).some((o) => (o.items || []).some((it) => it.id === p.id));
+    addReview({
+      id: genId("rev"), productId: p.id, email: auth.email,
+      name: auth.email.split("@")[0], rating: reviewRating, comment: reviewComment.trim(),
+      date: new Date().toISOString(), verified: hasPurchased,
+    });
+    setReviewSubmitted(true);
+    setReviewRating(0);
+    setReviewComment("");
+  }
+
   return (
-    <ModalShell onClose={onClose} dark={dark} width={560}>
+    <ModalShell onClose={onClose} dark={dark} width={620}>
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 200px", display: "flex", justifyContent: "center" }}><ProductImage p={p} size={180} /></div>
+        <div style={{ flex: "1 1 200px", display: "flex", justifyContent: "center", position: "relative" }}>
+          <ProductImage p={p} size={180} />
+          {toggleWishlist && (
+            <button
+              className="ss-btn" onClick={() => toggleWishlist(p.id)}
+              title={lang === "en" ? "Save to wishlist" : "मनपर्ने सूचीमा राख्नुहोस्"}
+              style={{
+                position: "absolute", top: 6, right: 6, width: 32, height: 32, borderRadius: "50%",
+                background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Heart size={16} fill={isWishlisted ? "#E3506D" : "none"} color={isWishlisted ? "#E3506D" : "#fff"} />
+            </button>
+          )}
+        </div>
         <div style={{ flex: "1 1 240px" }}>
           <span className="ss-caption" style={{ fontSize: 11, color: C.gold400 }}>{CATEGORIES.find((c) => c.id === p.category)?.[lang]}</span>
           <h3 className="ss-display" style={{ fontSize: 22, fontWeight: 700, margin: "4px 0 8px" }}>{lang === "en" ? p.nameEn : p.nameNp}</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, marginBottom: 10 }}>
-            <Star size={13} fill={C.gold400} color={C.gold400} /> {p.rating} ({p.reviews} {t.verifiedReviews})
+            <Star size={13} fill={C.gold400} color={C.gold400} /> {stats.count > 0 ? stats.rating : "—"} <span style={{ color: C.ink600 }}>({stats.count} {t.verifiedReviews})</span>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14 }}>
             <span style={{ fontWeight: 700, fontSize: 22, color: C.wine700 }}>{fmtNPR(finalPrice)}</span>
             {p.discount > 0 && <span style={{ textDecoration: "line-through", color: C.ink600, fontSize: 14 }}>{fmtNPR(p.price)}</span>}
           </div>
+
+          {needsVariant && (
+            <div style={{ marginBottom: 14 }}>
+              <div className="ss-caption" style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{t.selectVariant}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {p.variants.map((v) => (
+                  <button key={v} className="ss-btn ss-caption" onClick={() => setVariant(v)}
+                    style={{
+                      padding: "7px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                      border: `1.5px solid ${variant === v ? C.wine700 : C.gold400 + "77"}`,
+                      background: variant === v ? C.wine700 : "transparent", color: variant === v ? "#fff" : (dark ? C.ivory50 : C.ink900),
+                    }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <QtyStepper qty={qty} setQty={setQty} max={p.stock} />
             <span className="ss-caption" style={{ fontSize: 12, color: p.stock <= 4 ? C.rose500 : "#2E9E5B" }}>{p.stock === 0 ? t.outOfStock : p.stock <= 4 ? t.lowStock : t.inStock}</span>
           </div>
-          <button className="ss-btn ss-caption" disabled={p.stock === 0} onClick={() => { addToCart(p.id, qty); onClose(); }}
-            style={{ width: "100%", background: C.wine700, color: "#fff", padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 14, opacity: p.stock === 0 ? 0.5 : 1 }}>
-            {t.addToCart}
+          <button className="ss-btn ss-caption" disabled={!canAdd} onClick={handleAddToCart}
+            style={{ width: "100%", background: C.wine700, color: "#fff", padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 14, opacity: canAdd ? 1 : 0.5 }}>
+            {needsVariant && !variant ? t.selectVariant : t.addToCart}
           </button>
           <a
             href={whatsappLink(
@@ -1655,6 +1876,63 @@ function QuickViewModal({ p, t, lang, dark, addToCart, onClose }) {
             <WhatsappIcon size={16} color="#fff" /> {lang === "en" ? "Order via WhatsApp" : "WhatsApp मार्फत अर्डर गर्नुहोस्"}
           </a>
         </div>
+      </div>
+
+      {/* REVIEWS */}
+      <div style={{ marginTop: 26, paddingTop: 20, borderTop: `1px solid ${C.gold400}33` }}>
+        <div className="ss-caption" style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{t.verifiedReviews} ({stats.count})</div>
+
+        {productReviews.length === 0 ? (
+          <p style={{ fontSize: 13, color: C.ink600, marginBottom: 16 }}>{t.noReviewsYet}</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18, maxHeight: 220, overflowY: "auto" }} className="ss-scroll">
+            {productReviews.map((r) => (
+              <div key={r.id} style={{ paddingBottom: 12, borderBottom: `1px solid ${C.gold400}22` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</span>
+                  {r.verified && <Badge tone="gold"><CircleCheck size={11} /> {t.verifiedPurchase}</Badge>}
+                  <span style={{ fontSize: 11, color: C.ink600 }}>{new Date(r.date).toLocaleDateString()}</span>
+                </div>
+                <div style={{ display: "flex", gap: 1, marginBottom: 4 }}>
+                  {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={12} fill={i < r.rating ? C.gold400 : "none"} color={C.gold400} />)}
+                </div>
+                <p style={{ fontSize: 13, lineHeight: 1.5 }}>{r.comment}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!auth.verified ? (
+          <div style={{ background: dark ? C.plum950 : C.ivory100, borderRadius: 10, padding: 12, fontSize: 12.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <span>{t.loginToReview}</span>
+            <button className="ss-btn ss-caption" onClick={onRequestLogin} style={{ background: C.wine700, color: "#fff", padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{t.login}</button>
+          </div>
+        ) : reviewSubmitted ? (
+          <div style={{ fontSize: 13, color: "#2E9E5B", display: "flex", alignItems: "center", gap: 6 }}><CircleCheck size={15} /> {t.reviewSubmitted}</div>
+        ) : (
+          <div>
+            <div className="ss-caption" style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{t.writeReview}</div>
+            <div style={{ marginBottom: 8 }}>
+              <label className="ss-caption" style={{ fontSize: 11, color: C.ink600, display: "block", marginBottom: 4 }}>{t.yourRating}</label>
+              <div style={{ display: "flex", gap: 3 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button key={i} className="ss-btn" onMouseEnter={() => setReviewHoverRating(i + 1)} onMouseLeave={() => setReviewHoverRating(0)} onClick={() => setReviewRating(i + 1)} style={{ background: "none", padding: 2 }}>
+                    <Star size={22} fill={i < (reviewHoverRating || reviewRating) ? C.gold400 : "none"} color={C.gold400} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              className="ss-focus" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)}
+              placeholder={t.yourReview} rows={3}
+              style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 13, resize: "vertical", marginBottom: 10 }}
+            />
+            <button className="ss-btn ss-caption" disabled={reviewRating < 1 || !reviewComment.trim()} onClick={handleSubmitReview}
+              style={{ background: C.wine700, color: "#fff", padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, opacity: reviewRating < 1 || !reviewComment.trim() ? 0.5 : 1 }}>
+              {t.submitReview}
+            </button>
+          </div>
+        )}
       </div>
     </ModalShell>
   );
@@ -1816,10 +2094,11 @@ function CartLineItem({ c, t, lang, dark, setCartQty, removeFromCart }) {
             {t.includes}: {c.product.includedProducts.map((p) => lang === "en" ? p.nameEn : p.nameNp).join(", ")}
           </div>
         )}
+        {c.variant && <div style={{ fontSize: 11, color: C.ink600, marginTop: 2 }}>{lang === "en" ? "Size" : "साइज"}: {c.variant}</div>}
         <div style={{ fontSize: 13, color: C.wine700, fontWeight: 700, marginTop: 2 }}>{fmtNPR(price)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
-          <QtyStepper qty={c.qty} setQty={(q) => setCartQty(c.id, q)} max={c.product.stock} />
-          <button className="ss-btn ss-caption" onClick={() => removeFromCart(c.id)} style={{ background: "none", color: C.ink600, fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}>
+          <QtyStepper qty={c.qty} setQty={(q) => setCartQty(c.id, c.variant, q)} max={c.product.stock} />
+          <button className="ss-btn ss-caption" onClick={() => removeFromCart(c.id, c.variant)} style={{ background: "none", color: C.ink600, fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}>
             <Trash2 size={12} /> {t.remove}
           </button>
         </div>
@@ -1845,7 +2124,7 @@ function CartDrawer({ open, onClose, t, lang, dark, cartDetailed, setCartQty, re
             <ShoppingBag size={32} style={{ opacity: 0.4, marginBottom: 8 }} />
             <div>{t.emptyCart}</div>
           </div>
-        ) : cartDetailed.map((c) => <CartLineItem key={c.id} c={c} t={t} lang={lang} dark={dark} setCartQty={setCartQty} removeFromCart={removeFromCart} />)}
+        ) : cartDetailed.map((c) => <CartLineItem key={c.id + (c.variant || "")} c={c} t={t} lang={lang} dark={dark} setCartQty={setCartQty} removeFromCart={removeFromCart} />)}
       </div>
       {cartDetailed.length > 0 && (
         <div style={{ padding: 18, borderTop: `1px solid ${C.gold400}33` }}>
@@ -1872,7 +2151,7 @@ function CartPage({ t, lang, dark, cartDetailed, setCartQty, removeFromCart, sub
           </div>
         ) : (
           <>
-            {cartDetailed.map((c) => <CartLineItem key={c.id} c={c} t={t} lang={lang} dark={dark} setCartQty={setCartQty} removeFromCart={removeFromCart} />)}
+            {cartDetailed.map((c) => <CartLineItem key={c.id + (c.variant || "")} c={c} t={t} lang={lang} dark={dark} setCartQty={setCartQty} removeFromCart={removeFromCart} />)}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, fontWeight: 700, marginTop: 18 }}>
               <span>{t.subtotal}</span><span>{fmtNPR(subtotal)}</span>
             </div>
@@ -2253,6 +2532,26 @@ function PaymentOption({ id, selected, onSelect, icon: Icon, label, dark }) {
 /* ============================================================
    ORDERS PAGE
    ============================================================ */
+function WishlistPage({ t, lang, dark, products, wishlist, toggleWishlist, reviews, addToCart, go }) {
+  const items = (wishlist || []).map((id) => products.find((p) => p.id === id)).filter(Boolean);
+  return (
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 56px" }}>
+      <SectionHeading title={t.wishlist} dark={dark} />
+      {items.length === 0 ? (
+        <div style={{ padding: 50, textAlign: "center", color: C.ink600 }}>
+          <Heart size={40} style={{ opacity: 0.4, marginBottom: 10 }} />
+          <p>{t.emptyWishlist}</p>
+          <button className="ss-btn ss-caption" onClick={() => go("shop")} style={{ marginTop: 14, background: C.wine700, color: "#fff", padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600 }}>{t.shopNow}</button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginTop: 22 }}>
+          {items.map((p) => <ProductCard key={p.id} p={p} t={t} lang={lang} dark={dark} addToCart={addToCart} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OrdersPage({ t, lang, dark, orders, go }) {
   const statusColor = { pending: C.gold400, processing: "#3E7CB1", shipped: "#8355C9", delivered: "#2E9E5B", cancelled: "#D14343" };
   const statusLabel = { pending: t.pending, processing: t.processing, shipped: t.shipped, delivered: t.delivered, cancelled: t.cancelled };
@@ -2464,7 +2763,7 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, offers, setOffers, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -2475,6 +2774,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
     { id: "offers", label: t.specialOffers, icon: Gift },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
+    { id: "reviews", label: lang === "en" ? "Reviews" : "समीक्षा", icon: Star },
     { id: "logins", label: lang === "en" ? "Login History" : "लगइन इतिहास", icon: Lock },
   ];
 
@@ -2509,6 +2809,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
         {tab === "offers" && <AdminOffers t={t} lang={lang} dark={dark} offers={offers} setOffers={setOffers} products={products} />}
         {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} setOrders={setOrders} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
+        {tab === "reviews" && <AdminReviews t={t} lang={lang} dark={dark} reviews={reviews} products={products} deleteReview={deleteReview} />}
         {tab === "logins" && <AdminLoginHistory t={t} lang={lang} dark={dark} loginHistory={loginHistory} />}
       </main>
 
@@ -2600,7 +2901,7 @@ function AdminOverview({ t, lang, dark, products, orders, visitorCount }) {
 }
 
 function emptyDraft() {
-  return { nameEn: "", nameNp: "", category: CATEGORIES[0].id, price: "", discount: "0", stock: "", featured: false, image: null, emoji: "💠", color: C.wine700 };
+  return { nameEn: "", nameNp: "", category: CATEGORIES[0].id, price: "", discount: "0", stock: "", featured: false, image: null, emoji: "💠", color: C.wine700, variants: "" };
 }
 
 function AdminProducts({ t, lang, dark, products, setProducts }) {
@@ -2625,19 +2926,20 @@ function AdminProducts({ t, lang, dark, products, setProducts }) {
 
   function saveProduct() {
     if (!draft.nameEn || !draft.price || draft.stock === "") return;
+    const variantsArr = draft.variants.split(",").map((s) => s.trim()).filter(Boolean);
     if (editingId) {
-      setProducts(products.map((p) => (p.id === editingId ? { ...p, ...draft, price: Number(draft.price), discount: Number(draft.discount) || 0, stock: Number(draft.stock) } : p)));
+      setProducts(products.map((p) => (p.id === editingId ? { ...p, ...draft, price: Number(draft.price), discount: Number(draft.discount) || 0, stock: Number(draft.stock), variants: variantsArr } : p)));
     } else {
       const newProduct = {
         id: genId("p"), ...draft, price: Number(draft.price), discount: Number(draft.discount) || 0, stock: Number(draft.stock),
-        rating: 5.0, reviews: 0,
+        variants: variantsArr, rating: 5.0, reviews: 0,
       };
       setProducts([newProduct, ...products]);
     }
     resetForm();
   }
   function editProduct(p) {
-    setDraft({ nameEn: p.nameEn, nameNp: p.nameNp || "", category: p.category, price: String(p.price), discount: String(p.discount || 0), stock: String(p.stock), featured: !!p.featured, image: p.image || null, emoji: p.emoji || "💠", color: p.color || C.wine700 });
+    setDraft({ nameEn: p.nameEn, nameNp: p.nameNp || "", category: p.category, price: String(p.price), discount: String(p.discount || 0), stock: String(p.stock), featured: !!p.featured, image: p.image || null, emoji: p.emoji || "💠", color: p.color || C.wine700, variants: (p.variants || []).join(", ") });
     setEditingId(p.id);
   }
   function deleteProduct(id) {
@@ -2677,6 +2979,9 @@ function AdminProducts({ t, lang, dark, products, setProducts }) {
             <FormRow label={t.price}><input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></FormRow>
             <FormRow label={t.discount}><input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.discount} onChange={(e) => setDraft({ ...draft, discount: e.target.value })} /></FormRow>
             <FormRow label={t.stock}><input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.stock} onChange={(e) => setDraft({ ...draft, stock: e.target.value })} /></FormRow>
+            <FormRow label={lang === "en" ? "Variants (e.g. sizes, comma separated, optional)" : "विकल्प (जस्तै साइज, अल्पविरामले छुट्याएर)"}>
+              <input className="ss-focus" style={inputStyle(dark)} placeholder={lang === "en" ? "e.g. 2.4in, 2.6in, 2.8in" : "जस्तै २.४, २.६, २.८"} value={draft.variants} onChange={(e) => setDraft({ ...draft, variants: e.target.value })} />
+            </FormRow>
           </div>
         </div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13 }}>
@@ -3083,6 +3388,48 @@ function AdminLoginHistory({ t, lang, dark, loginHistory }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminReviews({ t, lang, dark, reviews, products, deleteReview }) {
+  const list = [...(reviews || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Reviews" : "समीक्षा"}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>
+        {lang === "en" ? "All customer reviews across your products. Remove anything inappropriate or spam." : "तपाईंका सबै सामानमा भएका ग्राहक समीक्षाहरू। अनुपयुक्त वा स्प्याम भएमा हटाउनुहोस्।"}
+      </p>
+      {list.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: C.ink600 }}>{lang === "en" ? "No reviews yet." : "अहिलेसम्म कुनै समीक्षा छैन।"}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {list.map((r) => {
+            const product = products.find((p) => p.id === r.productId);
+            return (
+              <div key={r.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{r.name}</span>
+                      {r.verified && <Badge tone="gold"><CircleCheck size={11} /> {t.verifiedPurchase}</Badge>}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.ink600, marginBottom: 4 }}>
+                      {product ? (lang === "en" ? product.nameEn : (product.nameNp || product.nameEn)) : r.productId} · {new Date(r.date).toLocaleString()}
+                    </div>
+                    <div style={{ display: "flex", gap: 1, marginBottom: 6 }}>
+                      {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={12} fill={i < r.rating ? C.gold400 : "none"} color={C.gold400} />)}
+                    </div>
+                    <p style={{ fontSize: 13, lineHeight: 1.5, maxWidth: 560 }}>{r.comment}</p>
+                    <p style={{ fontSize: 11, color: C.ink600, marginTop: 4 }}>{r.email}</p>
+                  </div>
+                  <button className="ss-btn" onClick={() => deleteReview(r.id)} style={{ background: "none", color: "#D14343", flexShrink: 0 }}><Trash2 size={16} /></button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
