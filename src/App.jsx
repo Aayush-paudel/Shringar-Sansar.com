@@ -615,19 +615,45 @@ function Badge({ children, tone = "gold" }) {
   );
 }
 
-function ProductImage({ p, size = 64 }) {
+function ProductImage({ p, size = 64, square = false }) {
   if (p.image) {
-    return <img src={p.image} alt={p.nameEn} style={{ width: size, height: size, objectFit: "cover", borderRadius: 10 }} />;
+    return (
+      <div className="ss-img-zoom-wrap" style={{ width: square ? "100%" : size, height: size, overflow: "hidden", borderRadius: square ? 0 : 10 }}>
+        <img src={p.image} alt={p.nameEn} className="ss-img-zoom" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+    );
   }
+  const base = p.color || C.wine700;
+  const dim = square ? "100%" : size;
   return (
     <div
+      className="ss-img-zoom-wrap ss-placeholder-shine"
       style={{
-        width: size, height: size, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: size * 0.42, background: `linear-gradient(150deg, ${p.color || C.wine700}22, ${p.color || C.wine700}55)`,
-        border: `1px solid ${p.color || C.gold400}55`,
+        width: dim, height: size, borderRadius: square ? 0 : 14, position: "relative", overflow: "hidden",
+        background: `radial-gradient(120% 130% at 22% 18%, ${base}77, ${base}dd 55%, ${C.plum950} 130%)`,
       }}
     >
-      {p.emoji || "💠"}
+      <svg style={{ position: "absolute", inset: 0, opacity: 0.16 }} width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id={`sparkle-${p.id}`} width="34" height="34" patternUnits="userSpaceOnUse">
+            <circle cx="4" cy="4" r="1.2" fill="#fff" />
+            <circle cx="20" cy="16" r="0.8" fill="#fff" />
+            <circle cx="12" cy="26" r="1" fill="#fff" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#sparkle-${p.id})`} />
+      </svg>
+      <div style={{
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+        width: size * 0.72, height: size * 0.72, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.04) 60%, transparent 75%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <span className="ss-img-zoom" style={{ fontSize: size * 0.4, filter: "drop-shadow(0 4px 10px rgba(0,0,0,.35))", display: "block" }}>
+          {p.emoji || "💠"}
+        </span>
+      </div>
+      <div className="ss-shine-sweep" />
     </div>
   );
 }
@@ -853,6 +879,17 @@ export default function ShringarSansarApp() {
     .ss-btn:active { transform: translateY(0px) scale(.98); }
     .ss-card { transition: transform .25s ease, box-shadow .25s ease; }
     .ss-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px -12px rgba(42,15,29,.35); }
+    .ss-img-zoom-wrap { position: relative; }
+    .ss-img-zoom { transition: transform .5s ease; }
+    .ss-card:hover .ss-img-zoom { transform: scale(1.1) rotate(-1deg); }
+    .ss-placeholder-shine { box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+    .ss-shine-sweep {
+      position: absolute; top: 0; left: -60%; width: 40%; height: 100%; pointer-events: none;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.22) 45%, transparent 75%);
+      transform: skewX(-18deg); animation: ssShineSweep 4.5s ease-in-out infinite;
+    }
+    @keyframes ssShineSweep { 0% { left: -60%; } 35% { left: 130%; } 100% { left: 130%; } }
+    @media (prefers-reduced-motion: reduce) { .ss-shine-sweep { animation: none; display: none; } }
     .ss-fade-in { animation: ssFadeIn .5s ease both; }
     @keyframes ssFadeIn { from { opacity:0; transform: translateY(10px);} to {opacity:1; transform:none;} }
     .ss-scroll::-webkit-scrollbar { width:6px; height:6px; }
@@ -1430,9 +1467,9 @@ function ProductCard({ p, t, lang, dark, addToCart, onQuickView }) {
   const name = lang === "en" ? p.nameEn : (p.nameNp || p.nameEn);
   return (
     <div className="ss-card ss-fade-in" style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <div style={{ position: "relative", padding: 14, display: "flex", justifyContent: "center", background: dark ? C.plum950 + "66" : C.ivory100 }}
+      <div style={{ position: "relative", display: "flex", justifyContent: "center", cursor: "pointer" }}
         onClick={() => onQuickView && onQuickView(p)}>
-        <ProductImage p={p} size={130} />
+        <ProductImage p={p} size={168} square />
         {p.discount > 0 && <div style={{ position: "absolute", top: 10, left: 10 }}><Badge tone="wine">-{p.discount}%</Badge></div>}
         {p.stock === 0 && <div style={{ position: "absolute", inset: 0, background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span className="ss-caption" style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>{t.outOfStock}</span>
