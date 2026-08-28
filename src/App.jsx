@@ -366,12 +366,12 @@ const NAME_REGEX = /^[A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+)+$/;
 const PHONE_REGEX = /^9[78]\d{8}$/;
 
 const CATEGORIES = [
-  { id: "necklace", en: "Necklace Sets", np: "माला सेट", icon: "💎" },
-  { id: "earrings", en: "Earrings", np: "कान का बाला", icon: "✨" },
-  { id: "bangles", en: "Bangles", np: "चुरा", icon: "⭕" },
-  { id: "tikka", en: "Tikka & Mang Tikka", np: "टीका", icon: "👑" },
-  { id: "rings", en: "Rings", np: "औंठी", icon: "💍" },
-  { id: "cosmetics", en: "Cosmetics", np: "सौन्दर्य सामान", icon: "💄" },
+  { id: "necklace", en: "Necklace Sets", np: "माला सेट", icon: "💎", gradient: ["#6B1F35", "#2A0F1D"] },
+  { id: "earrings", en: "Earrings", np: "कान का बाला", icon: "✨", gradient: ["#D4AF37", "#8A6A15"] },
+  { id: "bangles", en: "Bangles", np: "चुरा", icon: "⭕", gradient: ["#C1546F", "#6B1F35"] },
+  { id: "tikka", en: "Tikka & Mang Tikka", np: "टीका", icon: "👑", gradient: ["#E4C767", "#B5862A"] },
+  { id: "rings", en: "Rings", np: "औंठी", icon: "💍", gradient: ["#832847", "#2A0F1D"] },
+  { id: "cosmetics", en: "Cosmetics", np: "सौन्दर्य सामान", icon: "💄", gradient: ["#E3A6B6", "#832847"] },
 ];
 
 const SHOP = {
@@ -1223,19 +1223,40 @@ function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCa
       {/* CATEGORIES */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 20px 20px" }}>
         <SectionHeading title={t.exploreCategories} dark={dark} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14, marginTop: 24 }}>
-          {CATEGORIES.map((c) => (
-            <button key={c.id} className="ss-btn ss-card" onClick={() => go("shop", { category: c.id })}
-              style={{
-                background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, padding: "22px 12px",
-                textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-              }}>
-              <span style={{ fontSize: 30 }}>{c.icon}</span>
-              <span className="ss-caption" style={{ fontSize: 13, fontWeight: 600, color: dark ? C.ivory50 : C.ink900 }}>{lang === "en" ? c.en : c.np}</span>
-            </button>
-          ))}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 18, marginTop: 26 }}>
+          {CATEGORIES.map((c) => {
+            const count = products.filter((p) => p.category === c.id).length;
+            return (
+              <button key={c.id} className="ss-btn ss-category-card" onClick={() => go("shop", { category: c.id })}
+                style={{
+                  position: "relative", overflow: "hidden", borderRadius: 20, padding: "28px 14px 20px",
+                  textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                  background: `linear-gradient(150deg, ${c.gradient[0]}, ${c.gradient[1]})`,
+                  border: `1px solid ${C.gold400}55`, boxShadow: "0 10px 24px -12px rgba(42,15,29,.5)",
+                }}>
+                <svg style={{ position: "absolute", top: -20, right: -20, opacity: 0.15 }} width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="44" fill="none" stroke="#fff" strokeWidth="1.5" />
+                </svg>
+                <div style={{
+                  width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.16)",
+                  border: `1.5px solid ${C.gold300}99`, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 28, boxShadow: "inset 0 2px 6px rgba(0,0,0,.15)",
+                }}>
+                  {c.icon}
+                </div>
+                <span className="ss-caption" style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", letterSpacing: "0.01em" }}>{lang === "en" ? c.en : c.np}</span>
+                <span className="ss-caption" style={{ fontSize: 10.5, color: C.gold300, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  {count} {lang === "en" ? (count === 1 ? "item" : "items") : "सामान"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
+      <style>{`
+        .ss-category-card { transition: transform .25s ease, box-shadow .25s ease; }
+        .ss-category-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 18px 34px -12px rgba(42,15,29,.6); }
+      `}</style>
 
       {/* FEATURED PRODUCTS */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 20px" }}>
