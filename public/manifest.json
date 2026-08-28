@@ -1,0 +1,17 @@
+{
+  "name": "Shringar Sansar",
+  "short_name": "Shringar Sansar",
+  "description": "Bharatpur's home for bridal jewellery, traditional adornments & everyday elegance.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF4EC",
+  "theme_color": "#2A0F1D",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

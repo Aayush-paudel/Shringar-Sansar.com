@@ -379,11 +379,16 @@ const SHOP = {
   address: "Narayanghat, Sahid Chowk, Indradev Marga, Bharatpur",
   postal: "00977",
   phone: "985-5015832",
+  whatsapp: "9779855015832",
   landmark: "Near The Mobile Solution",
   plusCode: "MCVF+XH Bharatpur",
   hours: "Daily from 8:30 AM",
   mapQuery: "MCVF+XH Bharatpur Nepal",
 };
+
+function whatsappLink(message) {
+  return `https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(message)}`;
+}
 
 /* ============================================================
    SEED DATA
@@ -658,6 +663,8 @@ export default function ShringarSansarApp() {
   const [cartOpen, setCartOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [booted, setBooted] = useState(false);
   const [visitorCount, setVisitorCount] = useState(0);
@@ -675,6 +682,30 @@ export default function ShringarSansarApp() {
     window.clearTimeout(showToast._h);
     showToast._h = window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  /* ---------- PWA install prompt ---------- */
+  useEffect(() => {
+    function handler(e) {
+      e.preventDefault();
+      setInstallPrompt(e);
+      const dismissed = window.localStorage.getItem(LS_PREFIX + "install-dismissed");
+      if (!dismissed) setShowInstallBanner(true);
+    }
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstallClick() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setShowInstallBanner(false);
+  }
+  function dismissInstallBanner() {
+    setShowInstallBanner(false);
+    window.localStorage.setItem(LS_PREFIX + "install-dismissed", "1");
+  }
 
   /* ---------- boot: load persisted state ---------- */
   useEffect(() => {
@@ -857,6 +888,25 @@ export default function ShringarSansarApp() {
         </div>
       )}
 
+      {showInstallBanner && !adminMode && (
+        <div className="ss-fade-in" style={{
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 190, background: C.plum950, color: C.ivory50,
+          padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 -8px 24px -8px rgba(0,0,0,.4)",
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, overflow: "hidden", flexShrink: 0, border: `1px solid ${C.gold400}` }}>
+            <img src="/logo.png" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }} className="ss-caption">
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{lang === "en" ? "Install Shringar Sansar" : "श्रृंगार संसार इन्स्टल गर्नुहोस्"}</div>
+            <div style={{ fontSize: 11, opacity: 0.75 }}>{lang === "en" ? "Add to your home screen for quick access." : "छिटो पहुँचका लागि आफ्नो होम स्क्रिनमा थप्नुहोस्।"}</div>
+          </div>
+          <button className="ss-btn ss-caption" onClick={handleInstallClick} style={{ background: C.gold400, color: C.ink900, padding: "9px 16px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
+            {lang === "en" ? "Install" : "इन्स्टल"}
+          </button>
+          <button className="ss-btn" onClick={dismissInstallBanner} style={{ background: "none", color: C.ivory50, flexShrink: 0 }}><X size={16} /></button>
+        </div>
+      )}
+
       {adminMode ? (
         <AdminApp
           t={t} lang={lang} dark={dark}
@@ -924,6 +974,19 @@ export default function ShringarSansarApp() {
               onVerified={(email) => { setAuth({ email, verified: true }); setLoginOpen(false); showToast(lang === "en" ? "Email verified" : "इमेल प्रमाणित भयो"); recordLogin(email); }}
             />
           )}
+
+          <a
+            href={whatsappLink(lang === "en" ? "Hi Shringar Sansar, I'd like to ask about..." : "नमस्ते श्रृंगार संसार, म यसबारे सोध्न चाहन्छु...")}
+            target="_blank" rel="noopener noreferrer" title={lang === "en" ? "Chat on WhatsApp" : "WhatsApp मा च्याट गर्नुहोस्"}
+            style={{
+              position: "fixed", bottom: 20, left: 20, zIndex: 200, width: 52, height: 52, borderRadius: "50%",
+              background: "#25D366", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 12px 30px -8px rgba(0,0,0,.45)", textDecoration: "none",
+            }}
+            className="ss-btn"
+          >
+            <WhatsappIcon size={26} color="#fff" />
+          </a>
 
           <ChatWidget open={chatOpen} onOpen={() => setChatOpen(true)} onClose={() => setChatOpen(false)} lang={lang} dark={dark} />
         </>
@@ -1521,6 +1584,18 @@ function QuickViewModal({ p, t, lang, dark, addToCart, onClose }) {
             style={{ width: "100%", background: C.wine700, color: "#fff", padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 14, opacity: p.stock === 0 ? 0.5 : 1 }}>
             {t.addToCart}
           </button>
+          <a
+            href={whatsappLink(
+              lang === "en"
+                ? `Hi Shringar Sansar, I'm interested in "${p.nameEn}" (${fmtNPR(finalPrice)}). Is it available?`
+                : `नमस्ते श्रृंगार संसार, म "${p.nameNp || p.nameEn}" (${fmtNPR(finalPrice)}) मा जान्न चाहन्छु। के यो उपलब्ध छ?`
+            )}
+            target="_blank" rel="noopener noreferrer"
+            className="ss-btn ss-caption"
+            style={{ marginTop: 8, width: "100%", boxSizing: "border-box", background: "#25D366", color: "#fff", padding: "11px", borderRadius: 10, fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}
+          >
+            <WhatsappIcon size={16} color="#fff" /> {lang === "en" ? "Order via WhatsApp" : "WhatsApp मार्फत अर्डर गर्नुहोस्"}
+          </a>
         </div>
       </div>
     </ModalShell>
@@ -2186,8 +2261,15 @@ function ContactPage({ t, lang, dark, onOpenChat }) {
         <InfoRowLight icon={MapPin} text={`${SHOP.address}, ${SHOP.postal}`} dark={dark} />
         <InfoRowLight icon={Phone} text={SHOP.phone} dark={dark} />
         <InfoRowLight icon={Clock} text={t.dailyFrom} dark={dark} />
-        <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
           <a href={`tel:${SHOP.phone.replace(/\D/g, "")}`} className="ss-btn ss-caption" style={{ background: C.wine700, color: "#fff", padding: "10px 18px", borderRadius: 999, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}><Phone size={13} /> {lang === "en" ? "Call" : "फोन"}</a>
+          <a
+            href={whatsappLink(lang === "en" ? "Hi Shringar Sansar, I have a question." : "नमस्ते श्रृंगार संसार, मेरो एउटा प्रश्न छ।")}
+            target="_blank" rel="noopener noreferrer"
+            className="ss-btn ss-caption" style={{ background: "#25D366", color: "#fff", padding: "10px 18px", borderRadius: 999, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <WhatsappIcon size={14} color="#fff" /> WhatsApp
+          </a>
           <button className="ss-btn ss-caption" onClick={onOpenChat} style={{ background: "transparent", border: `1px solid ${C.gold400}`, color: dark ? C.ivory50 : C.ink900, padding: "10px 18px", borderRadius: 999, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={13} /> {lang === "en" ? "Chat" : "च्याट"}</button>
         </div>
       </div>
@@ -2223,6 +2305,21 @@ function TiktokIcon({ size = 16, color = "currentColor" }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M16.6 5.82c-.9-.98-1.4-2.26-1.4-3.62h-3.03v13.7c0 1.5-1.22 2.72-2.72 2.72a2.72 2.72 0 0 1-2.72-2.72 2.72 2.72 0 0 1 2.72-2.72c.28 0 .55.04.8.12V10.2a5.8 5.8 0 0 0-.8-.06A5.75 5.75 0 0 0 3.7 15.9a5.75 5.75 0 0 0 5.75 5.75 5.75 5.75 0 0 0 5.75-5.75V9.03a8.7 8.7 0 0 0 5.07 1.62V7.62a5.35 5.35 0 0 1-3.67-1.8Z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
+function WhatsappIcon({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M17.5 14.4c-.3-.15-1.7-.85-2-.95-.27-.1-.46-.15-.66.15-.2.3-.76.95-.93 1.15-.17.2-.34.22-.63.07-.3-.15-1.24-.46-2.36-1.46-.87-.78-1.46-1.74-1.63-2.04-.17-.3-.02-.46.13-.6.13-.13.3-.34.44-.5.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.66-1.6-.9-2.19-.24-.58-.48-.5-.66-.5h-.56c-.2 0-.53.07-.8.38-.28.3-1.05 1.02-1.05 2.5 0 1.47 1.08 2.9 1.23 3.1.15.2 2.13 3.25 5.16 4.56.72.31 1.28.5 1.72.63.72.23 1.38.2 1.9.12.58-.09 1.7-.7 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.13-.26-.2-.55-.35Z"
+        fill={color}
+      />
+      <path
+        d="M12.02 2C6.5 2 2 6.48 2 12c0 1.9.53 3.68 1.44 5.2L2 22l4.94-1.4A9.96 9.96 0 0 0 12.02 22C17.53 22 22 17.52 22 12S17.53 2 12.02 2Zm0 18.13c-1.7 0-3.28-.47-4.63-1.28l-.33-.2-2.93.84.82-2.86-.22-.34A8.13 8.13 0 0 1 3.86 12c0-4.5 3.66-8.14 8.16-8.14 4.5 0 8.15 3.65 8.15 8.14 0 4.5-3.65 8.13-8.15 8.13Z"
         fill={color}
       />
     </svg>
