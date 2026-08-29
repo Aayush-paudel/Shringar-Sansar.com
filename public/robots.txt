@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shringar-sansar.com/sitemap.xml

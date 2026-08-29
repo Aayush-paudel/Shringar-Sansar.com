@@ -2,4 +2,20 @@
 html, body, #root { margin: 0; padding: 0; min-height: 100%; }
 body { font-family: 'Mukta', sans-serif; }
 
-
+.ss-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  background: #2A0F1D;
+  color: #FBF4EC;
+  padding: 10px 16px;
+  border-radius: 8px;
+  z-index: 1000;
+  text-decoration: none;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  transition: top 0.2s ease;
+}
+.ss-skip-link:focus {
+  top: 8px;
+}

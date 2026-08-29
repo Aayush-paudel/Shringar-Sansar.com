@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, useId } from "react";
 import {
   ShoppingBag, Heart, User, Search, Menu, X, Globe, Moon, Sun, Star,
   ChevronRight, ChevronLeft, MapPin, Phone, Clock, Upload, Trash2, Edit2,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import infoNepal from "info-nepal";
+import { STR } from "./data/translations.js";
 
 /* ============================================================
    EMAILJS CONFIG — real email verification codes
@@ -39,322 +40,8 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Mukta:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap');";
 
 /* ============================================================
-   TRANSLATIONS
+   TRANSLATIONS — now in src/data/translations.js
    ============================================================ */
-const STR = {
-  en: {
-    tagline: "Adorn Your Story",
-    heroTitle: "Shringar Sansar",
-    heroSub: "Bharatpur's home for bridal jewellery, traditional adornments & everyday elegance — curated with love since day one.",
-    shopNow: "Shop Now",
-    exploreCategories: "Explore Categories",
-    ourStory: "Our Story",
-    storyText: "What began as a small counter near Sahid Chowk has grown into Bharatpur's trusted address for shringar — the Nepali art of adornment. Every bangle, tikka and necklace on our shelves is chosen the way we'd choose for our own family: with care, honesty and an eye for lasting beauty.",
-    featured: "Featured Pieces",
-    viewAll: "View All",
-    addToCart: "Add to Cart",
-    selectOptions: "Select Options",
-    outOfStock: "Out of Stock",
-    testimonials: "What Our Customers Say",
-    counters: "Trusted by Bharatpur & Beyond",
-    happyCustomers: "Happy Customers",
-    productsSold: "Pieces Sold",
-    yearsService: "Years of Trust",
-    provincesServed: "Provinces Delivered",
-    deliversAll: "Delivers to all 7 provinces of Nepal",
-    blog: "Beauty Tips & Stories",
-    faq: "Frequently Asked Questions",
-    visitUs: "Visit Our Shop",
-    cart: "Cart",
-    yourCart: "Your Cart",
-    emptyCart: "Your cart is empty",
-    subtotal: "Subtotal",
-    deliveryFee: "Delivery Fee",
-    total: "Total",
-    checkout: "Proceed to Checkout",
-    continueShopping: "Continue Shopping",
-    login: "Login",
-    logout: "Logout",
-    myOrders: "My Orders",
-    wishlist: "Wishlist",
-    emptyWishlist: "Your wishlist is empty",
-    recentlyViewed: "Recently Viewed",
-    writeReview: "Write a Review",
-    yourRating: "Your Rating",
-    yourReview: "Your Review",
-    submitReview: "Submit Review",
-    loginToReview: "Please verify your email to write a review.",
-    verifiedPurchase: "Verified Purchase",
-    noReviewsYet: "No reviews yet. Be the first!",
-    selectVariant: "Select an option",
-    reviewSubmitted: "Thank you for your review!",
-    admin: "Admin",
-    home: "Home",
-    shop: "Shop",
-    about: "About",
-    contact: "Contact",
-    searchPlaceholder: "Search jewellery, cosmetics...",
-    verifyRequired: "Please verify your email to continue to checkout.",
-    enterEmail: "Enter your email",
-    sendCode: "Send Verification Code",
-    enterCode: "Enter the 4-digit code",
-    verify: "Verify & Continue",
-    wrongCode: "Incorrect code. Please try again.",
-    demoCodeNote: "Demo mode — no real email is sent. Your code is shown below for testing.",
-    step1: "Cart",
-    step2: "Delivery",
-    step3: "Payment",
-    step4: "Confirmation",
-    selectProvince: "Select Province",
-    district: "District",
-    municipality: "Municipality / VDC",
-    ward: "Ward No.",
-    landmark: "Landmark (optional)",
-    fullName: "Full Name",
-    phoneNumber: "Phone Number",
-    fasterDelivery: "⚡ Faster delivery (1–2 days) in Bagmati / Kathmandu Valley",
-    standardDelivery: "Standard delivery (3–6 days) to other provinces",
-    paymentMethod: "Choose Payment Method",
-    esewa: "eSewa QR Payment",
-    bank: "Bank Transfer",
-    cod: "Cash on Delivery",
-    codOutside: "Handling fee applies for COD outside Kathmandu Valley",
-    uploadProof: "Upload Payment Proof",
-    placeOrder: "Place Order",
-    orderConfirmed: "Order Confirmed!",
-    orderId: "Order ID",
-    pendingVerification: "Payment pending verification",
-    backToHome: "Back to Home",
-    allCategories: "All Categories",
-    priceRange: "Price Range",
-    sortBy: "Sort By",
-    newest: "Newest",
-    priceLowHigh: "Price: Low to High",
-    priceHighLow: "Price: High to Low",
-    noProducts: "No products match your filters.",
-    quickView: "Quick View",
-    inStock: "In stock",
-    lowStock: "Low stock",
-    qty: "Qty",
-    remove: "Remove",
-    secureCheckout: "Secure Checkout",
-    verifiedReviews: "Verified Reviews",
-    freeReturns: "Easy Returns",
-    adminLoginTitle: "Owner / Staff Access",
-    adminPassword: "Access Password",
-    enter: "Enter",
-    wrongPassword: "Incorrect password.",
-    overview: "Overview",
-    products: "Products",
-    orders: "Orders",
-    customers: "Customers",
-    revenue: "Total Revenue",
-    totalOrders: "Total Orders",
-    lowStockAlert: "Low Stock Items",
-    visitors: "Site Visitors",
-    addProduct: "Add New Product",
-    productNameEn: "Product Name (English)",
-    productNameNp: "Product Name (Nepali)",
-    category: "Category",
-    price: "Price (NPR)",
-    discount: "Discount %",
-    stock: "Stock Quantity",
-    featuredToggle: "Featured Product",
-    productImage: "Product Photo",
-    save: "Save Product",
-    cancel: "Cancel",
-    edit: "Edit",
-    delete: "Delete",
-    manageOrders: "Manage Orders",
-    updateStatus: "Update Status",
-    pending: "Pending",
-    processing: "Processing",
-    shipped: "Shipped",
-    delivered: "Delivered",
-    cancelled: "Cancelled",
-    exportCSV: "Export CSV",
-    shopInfo: "Shop Information",
-    getDirections: "Get Directions",
-    openingHours: "Opening Hours",
-    dailyFrom: "Daily from 8:30 AM",
-    close: "Close",
-    specialOffers: "Special Offers",
-    seeOffer: "See Offer",
-    addComboToCart: "Add Combo to Cart",
-    includes: "Includes",
-    youSave: "You save",
-    comboPrice: "Combo Price",
-    originalPrice: "Original Price",
-    offerTitleEn: "Offer Title (English)",
-    offerTitleNp: "Offer Title (Nepali)",
-    offerDescEn: "Offer Description (English)",
-    offerDescNp: "Offer Description (Nepali)",
-    selectProducts: "Select Products for this Combo",
-    activeToggle: "Active (visible to customers)",
-    manageOffers: "Manage Offers",
-    addOffer: "Add New Offer",
-    noOffersYet: "No special offers right now — check back soon!",
-    offerTheme: "Banner Theme",
-    limitedTime: "Limited Time",
-    comboAdded: "Combo added to cart",
-  },
-  np: {
-    tagline: "तपाईंको कथा सिँगार्नुहोस्",
-    heroTitle: "श्रृंगार संसार",
-    heroSub: "भरतपुरको दुलही गहना, परम्परागत श्रृंगार र दैनिक सुन्दरताको भरपर्दो ठेगाना — मायाका साथ छानिएको।",
-    shopNow: "किनमेल गर्नुहोस्",
-    exploreCategories: "श्रेणीहरू हेर्नुहोस्",
-    ourStory: "हाम्रो कथा",
-    storyText: "सहिद चोक नजिकैको सानो पसलबाट सुरु भएको यो यात्रा आज भरतपुरको भरपर्दो श्रृंगार गन्तव्य बनेको छ। हाम्रो सेल्फमा भएको हरेक चुरा, टीका र माला आफ्नै परिवारका लागि छान्ने भावनाले छानिएको हो।",
-    featured: "विशेष सामानहरू",
-    viewAll: "सबै हेर्नुहोस्",
-    addToCart: "कार्टमा राख्नुहोस्",
-    selectOptions: "विकल्प छान्नुहोस्",
-    outOfStock: "स्टक छैन",
-    testimonials: "ग्राहकका अनुभवहरू",
-    counters: "भरतपुर र बाहिर पनि भरपर्दो",
-    happyCustomers: "खुसी ग्राहकहरू",
-    productsSold: "बिक्री भएका सामान",
-    yearsService: "वर्षको विश्वास",
-    provincesServed: "प्रदेशमा डेलिभरी",
-    deliversAll: "नेपालका सबै ७ प्रदेशमा डेलिभरी हुन्छ",
-    blog: "सौन्दर्य सुझाव र कथाहरू",
-    faq: "बारम्बार सोधिने प्रश्नहरू",
-    visitUs: "हाम्रो पसलमा आउनुहोस्",
-    cart: "कार्ट",
-    yourCart: "तपाईंको कार्ट",
-    emptyCart: "तपाईंको कार्ट खाली छ",
-    subtotal: "उप-जम्मा",
-    deliveryFee: "डेलिभरी शुल्क",
-    total: "जम्मा",
-    checkout: "चेकआउट गर्नुहोस्",
-    continueShopping: "किनमेल जारी राख्नुहोस्",
-    login: "लगइन",
-    logout: "लगआउट",
-    myOrders: "मेरो अर्डरहरू",
-    wishlist: "मनपर्ने सूची",
-    emptyWishlist: "तपाईंको मनपर्ने सूची खाली छ",
-    recentlyViewed: "भर्खरै हेरिएको",
-    writeReview: "समीक्षा लेख्नुहोस्",
-    yourRating: "तपाईंको रेटिङ",
-    yourReview: "तपाईंको समीक्षा",
-    submitReview: "समीक्षा पेश गर्नुहोस्",
-    loginToReview: "समीक्षा लेख्न कृपया आफ्नो इमेल प्रमाणित गर्नुहोस्।",
-    verifiedPurchase: "प्रमाणित खरिद",
-    noReviewsYet: "अहिलेसम्म कुनै समीक्षा छैन। पहिलो हुनुहोस्!",
-    selectVariant: "विकल्प छान्नुहोस्",
-    reviewSubmitted: "तपाईंको समीक्षाको लागि धन्यवाद!",
-    admin: "एडमिन",
-    home: "गृहपृष्ठ",
-    shop: "पसल",
-    about: "हाम्रो बारे",
-    contact: "सम्पर्क",
-    searchPlaceholder: "गहना, सौन्दर्य सामान खोज्नुहोस्...",
-    verifyRequired: "चेकआउट अगाडि बढ्न कृपया इमेल प्रमाणित गर्नुहोस्।",
-    enterEmail: "आफ्नो इमेल राख्नुहोस्",
-    sendCode: "प्रमाणीकरण कोड पठाउनुहोस्",
-    enterCode: "४-अंकको कोड राख्नुहोस्",
-    verify: "प्रमाणित गर्नुहोस्",
-    wrongCode: "गलत कोड। फेरि प्रयास गर्नुहोस्।",
-    demoCodeNote: "डेमो मोड — वास्तविक इमेल पठाइँदैन। परीक्षणका लागि कोड तल देखाइएको छ।",
-    step1: "कार्ट",
-    step2: "डेलिभरी",
-    step3: "भुक्तानी",
-    step4: "पुष्टि",
-    selectProvince: "प्रदेश छान्नुहोस्",
-    district: "जिल्ला",
-    municipality: "नगरपालिका / गाउँपालिका",
-    ward: "वडा नं.",
-    landmark: "ल्यान्डमार्क (वैकल्पिक)",
-    fullName: "पूरा नाम",
-    phoneNumber: "फोन नम्बर",
-    fasterDelivery: "⚡ बागमती / काठमाडौं उपत्यकामा छिटो डेलिभरी (१-२ दिन)",
-    standardDelivery: "अन्य प्रदेशमा साधारण डेलिभरी (३-६ दिन)",
-    paymentMethod: "भुक्तानी विधि छान्नुहोस्",
-    esewa: "eSewa QR भुक्तानी",
-    bank: "बैंक ट्रान्सफर",
-    cod: "डेलिभरीमा नगद भुक्तानी",
-    codOutside: "उपत्यका बाहिर COD मा ह्यान्डलिङ शुल्क लाग्छ",
-    uploadProof: "भुक्तानी प्रमाण अपलोड गर्नुहोस्",
-    placeOrder: "अर्डर गर्नुहोस्",
-    orderConfirmed: "अर्डर पुष्टि भयो!",
-    orderId: "अर्डर आईडी",
-    pendingVerification: "भुक्तानी प्रमाणीकरण बाँकी",
-    backToHome: "गृहपृष्ठमा फर्कनुहोस्",
-    allCategories: "सबै श्रेणी",
-    priceRange: "मूल्य दायरा",
-    sortBy: "क्रमबद्ध गर्नुहोस्",
-    newest: "नयाँ",
-    priceLowHigh: "मूल्य: कम देखि बढी",
-    priceHighLow: "मूल्य: बढी देखि कम",
-    noProducts: "तपाईंको फिल्टरसँग मिल्ने सामान भेटिएन।",
-    quickView: "छिटो हेर्नुहोस्",
-    inStock: "स्टकमा छ",
-    lowStock: "थोरै स्टक",
-    qty: "परिमाण",
-    remove: "हटाउनुहोस्",
-    secureCheckout: "सुरक्षित चेकआउट",
-    verifiedReviews: "प्रमाणित समीक्षा",
-    freeReturns: "सजिलो फिर्ता",
-    adminLoginTitle: "मालिक / कर्मचारी पहुँच",
-    adminPassword: "पहुँच पासवर्ड",
-    enter: "प्रवेश गर्नुहोस्",
-    wrongPassword: "गलत पासवर्ड।",
-    overview: "सिंहावलोकन",
-    products: "सामानहरू",
-    orders: "अर्डरहरू",
-    customers: "ग्राहकहरू",
-    revenue: "कुल आम्दानी",
-    totalOrders: "कुल अर्डर",
-    lowStockAlert: "कम स्टक भएका सामान",
-    visitors: "साइट भ्रमणकर्ता",
-    addProduct: "नयाँ सामान थप्नुहोस्",
-    productNameEn: "सामानको नाम (अंग्रेजी)",
-    productNameNp: "सामानको नाम (नेपाली)",
-    category: "श्रेणी",
-    price: "मूल्य (रु.)",
-    discount: "छुट %",
-    stock: "स्टक परिमाण",
-    featuredToggle: "विशेष सामान",
-    productImage: "सामानको फोटो",
-    save: "सामान सुरक्षित गर्नुहोस्",
-    cancel: "रद्द गर्नुहोस्",
-    edit: "सम्पादन",
-    delete: "मेटाउनुहोस्",
-    manageOrders: "अर्डर व्यवस्थापन",
-    updateStatus: "स्थिति अपडेट गर्नुहोस्",
-    pending: "पेन्डिङ",
-    processing: "प्रोसेसिङ",
-    shipped: "पठाइयो",
-    delivered: "डेलिभर भयो",
-    cancelled: "रद्द भयो",
-    exportCSV: "CSV निर्यात",
-    shopInfo: "पसलको जानकारी",
-    getDirections: "बाटो हेर्नुहोस्",
-    openingHours: "खुल्ने समय",
-    dailyFrom: "हरेक दिन बिहान ८:३० बजेदेखि",
-    close: "बन्द गर्नुहोस्",
-    specialOffers: "विशेष अफरहरू",
-    seeOffer: "अफर हेर्नुहोस्",
-    addComboToCart: "कम्बो कार्टमा राख्नुहोस्",
-    includes: "समावेश छ",
-    youSave: "तपाईंले बचत गर्नुहुन्छ",
-    comboPrice: "कम्बो मूल्य",
-    originalPrice: "सामान्य मूल्य",
-    offerTitleEn: "अफर शीर्षक (अंग्रेजी)",
-    offerTitleNp: "अफर शीर्षक (नेपाली)",
-    offerDescEn: "अफर विवरण (अंग्रेजी)",
-    offerDescNp: "अफर विवरण (नेपाली)",
-    selectProducts: "यो कम्बोका लागि सामान छान्नुहोस्",
-    activeToggle: "सक्रिय (ग्राहकलाई देखिने)",
-    manageOffers: "अफर व्यवस्थापन",
-    addOffer: "नयाँ अफर थप्नुहोस्",
-    noOffersYet: "अहिले कुनै विशेष अफर छैन — छिट्टै फेरि हेर्नुहोस्!",
-    offerTheme: "ब्यानर रङ",
-    limitedTime: "सीमित समय",
-    comboAdded: "कम्बो कार्टमा थपियो",
-  },
-};
 
 const PROVINCE_DISTRICTS = {
   "Koshi": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
@@ -716,7 +403,55 @@ function PaisleyDivider({ dark }) {
 /* ============================================================
    MAIN APP
    ============================================================ */
-export default function ShringarSansarApp() {
+/* ============================================================
+   ERROR BOUNDARY — so a bug never shows a blank white screen
+   ============================================================ */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error("Shringar Sansar app error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+          background: C.ivory50, color: C.ink900, fontFamily: "system-ui, sans-serif", textAlign: "center",
+        }}>
+          <div>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>😔</div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, color: C.wine700 }}>Something went wrong</h1>
+            <p style={{ fontSize: 14, color: C.ink600, marginBottom: 20, maxWidth: 340 }}>
+              We're sorry — this page hit an unexpected error. Please try reloading, or contact us at {SHOP.phone} if it keeps happening.
+            </p>
+            <button onClick={() => window.location.reload()} style={{
+              background: C.wine700, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            }}>
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function ShringarSansarAppRoot() {
+  return (
+    <ErrorBoundary>
+      <ShringarSansarApp />
+    </ErrorBoundary>
+  );
+}
+
+function ShringarSansarApp() {
   const [lang, setLang] = useState("en");
   const [theme, setTheme] = useState("light");
   const [route, setRoute] = useState({ page: "home" });
@@ -778,13 +513,15 @@ export default function ShringarSansarApp() {
   useEffect(() => {
     (async () => {
       // Try the shared cloud bin first — this is what makes admin-added
-      // products and login history visible to every visitor, everywhere.
+      // products, offers, reviews, and now every customer's orders
+      // visible from any device, not just the one that created them.
       const cloud = await cloudFetch();
       if (cloud && Array.isArray(cloud.products) && cloud.products.length) {
         setProducts(cloud.products);
         setLoginHistory(Array.isArray(cloud.loginHistory) ? cloud.loginHistory : []);
         setOffers(Array.isArray(cloud.offers) ? cloud.offers : []);
         setReviews(Array.isArray(cloud.reviews) ? cloud.reviews : []);
+        setOrders(Array.isArray(cloud.orders) ? cloud.orders : []);
         setCloudReady(true);
       } else {
         // Cloud unreachable or empty — fall back to local copy, and if this
@@ -795,16 +532,16 @@ export default function ShringarSansarApp() {
         } else {
           setProducts(SEED_PRODUCTS);
         }
+        const storedOrdersFallback = await storageGet("orders", false, []);
+        setOrders(storedOrdersFallback || []);
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [] });
           if (seeded) setCloudReady(true);
         }
       }
 
       const storedCart = await storageGet("cart", false, []);
       setCart(storedCart || []);
-      const storedOrders = await storageGet("orders", false, []);
-      setOrders(storedOrders || []);
       const storedWishlist = await storageGet("wishlist", false, []);
       setWishlist(storedWishlist || []);
       const storedRecentlyViewed = await storageGet("recently-viewed", false, []);
@@ -838,38 +575,46 @@ export default function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory, offers, reviews });
-  }, [loginHistory, offers, reviews]);
+    await cloudSave({ products: next, loginHistory, offers, reviews, orders });
+  }, [loginHistory, offers, reviews, orders]);
 
   const persistOffers = useCallback(async (next) => {
     setOffers(next);
-    await cloudSave({ products, loginHistory, offers: next, reviews });
-  }, [products, loginHistory, reviews]);
+    await cloudSave({ products, loginHistory, offers: next, reviews, orders });
+  }, [products, loginHistory, reviews, orders]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next, offers, reviews });
+      cloudSave({ products, loginHistory: next, offers, reviews, orders });
       return next;
     });
-  }, [products, offers, reviews]);
+  }, [products, offers, reviews, orders]);
 
   const addReview = useCallback((review) => {
     setReviews((prev) => {
       const next = [review, ...prev];
-      cloudSave({ products, loginHistory, offers, reviews: next });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders });
       return next;
     });
-  }, [products, loginHistory, offers]);
+  }, [products, loginHistory, offers, orders]);
 
   const deleteReview = useCallback((reviewId) => {
     setReviews((prev) => {
       const next = prev.filter((r) => r.id !== reviewId);
-      cloudSave({ products, loginHistory, offers, reviews: next });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders });
       return next;
     });
-  }, [products, loginHistory, offers]);
+  }, [products, loginHistory, offers, orders]);
+
+  // Every order create/update/cancel goes through this so orders are
+  // shared across every device — the admin panel and each customer's
+  // own "My Orders" page always reflect the same real, current data.
+  const persistOrders = useCallback(async (next) => {
+    setOrders(next);
+    await cloudSave({ products, loginHistory, offers, reviews, orders: next });
+  }, [products, loginHistory, offers, reviews]);
 
   function toggleWishlist(productId) {
     setWishlist((prev) => {
@@ -1028,7 +773,7 @@ export default function ShringarSansarApp() {
         <AdminApp
           t={t} lang={lang} dark={dark}
           products={products} setProducts={persistProducts}
-          orders={orders} setOrders={setOrders}
+          orders={orders} setOrders={persistOrders}
           visitorCount={visitorCount} loginHistory={loginHistory}
           offers={offers} setOffers={persistOffers}
           reviews={reviews} deleteReview={deleteReview}
@@ -1046,7 +791,7 @@ export default function ShringarSansarApp() {
             searchQuery={searchQuery} setSearchQuery={setSearchQuery} wishlistCount={wishlist.length}
           />
 
-          <main>
+          <main id="main-content" tabIndex={-1}>
             {route.page === "home" && (
               <HomePage
                 t={t} lang={lang} dark={dark} products={products} offers={offers} go={go} addToCart={addToCart} addComboToCart={addComboToCart}
@@ -1079,17 +824,20 @@ export default function ShringarSansarApp() {
                 t={t} lang={lang} dark={dark} cartDetailed={cartDetailed} subtotal={cartSubtotal}
                 auth={auth} setLoginOpen={setLoginOpen} go={go}
                 onOrderPlaced={(order) => {
-                  setOrders((prev) => [order, ...prev]);
+                  persistOrders([order, ...orders]);
                   setCart([]);
                 }}
               />
             )}
-            {route.page === "orders" && <OrdersPage t={t} lang={lang} dark={dark} orders={orders} go={go} />}
+            {route.page === "orders" && <OrdersPage t={t} lang={lang} dark={dark} orders={orders} setOrders={persistOrders} auth={auth} go={go} showToast={showToast} />}
             {route.page === "admin-gate" && (
-              <AdminGate t={t} dark={dark} onSuccess={() => setAdminMode(true)} onCancel={() => go("home")} />
+              <AdminGate t={t} dark={dark} lang={lang} onSuccess={() => setAdminMode(true)} onCancel={() => go("home")} />
             )}
             {route.page === "about" && <AboutPage t={t} lang={lang} dark={dark} />}
             {route.page === "contact" && <ContactPage t={t} lang={lang} dark={dark} onOpenChat={() => setChatOpen(true)} />}
+            {!["home", "shop", "wishlist", "cart", "checkout", "orders", "admin-gate", "about", "contact"].includes(route.page) && (
+              <NotFoundPage t={t} lang={lang} dark={dark} go={go} />
+            )}
           </main>
 
           <Footer t={t} lang={lang} dark={dark} go={go} setRoute={setRoute} />
@@ -1184,16 +932,16 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           />
         </div>
 
-        <button className="ss-btn" title={lang === "en" ? "नेपाली" : "English"} onClick={() => setLang(lang === "en" ? "np" : "en")}
+        <button className="ss-btn" title={lang === "en" ? "नेपाली" : "English"} aria-label={lang === "en" ? "Switch to Nepali" : "Switch to English"} onClick={() => setLang(lang === "en" ? "np" : "en")}
           style={{ background: "none", display: "flex", alignItems: "center", gap: 4, color: dark ? C.ivory50 : C.ink900, fontSize: 12 }} className="ss-caption">
           <Globe size={17} /> <span style={{ fontWeight: 600 }}>{lang === "en" ? "EN" : "ने"}</span>
         </button>
 
-        <button className="ss-btn" onClick={() => setTheme(dark ? "light" : "dark")} style={{ background: "none", color: dark ? C.gold300 : C.ink900 }}>
+        <button className="ss-btn" onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} style={{ background: "none", color: dark ? C.gold300 : C.ink900 }}>
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <button className="ss-btn" onClick={() => auth.verified ? setAccountOpen((o) => !o) : onLoginClick()} title={t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={() => auth.verified ? setAccountOpen((o) => !o) : onLoginClick()} title={t.login} aria-label={auth.verified ? "Account menu" : t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <User size={19} />
           {auth.verified && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "#2E9E5B", border: `1.5px solid ${dark ? C.plum950 : C.ivory50}` }} />}
         </button>
@@ -1211,7 +959,7 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           </div>
         )}
 
-        <button className="ss-btn" onClick={() => go("wishlist")} title={t.wishlist} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={() => go("wishlist")} title={t.wishlist} aria-label={`${t.wishlist} (${wishlistCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <Heart size={19} />
           {wishlistCount > 0 && (
             <span style={{
@@ -1221,7 +969,7 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           )}
         </button>
 
-        <button className="ss-btn" onClick={onCartClick} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={onCartClick} aria-label={`${t.cart} (${cartCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
           <ShoppingBag size={20} />
           {cartCount > 0 && (
             <span style={{
@@ -1231,7 +979,7 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           )}
         </button>
 
-        <button className="ss-btn" onClick={() => setMenuOpen((m) => !m)} style={{ background: "none", color: dark ? C.ivory50 : C.ink900 }} title="Menu">
+        <button className="ss-btn" onClick={() => setMenuOpen((m) => !m)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} style={{ background: "none", color: dark ? C.ivory50 : C.ink900 }} title="Menu">
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -1923,8 +1671,8 @@ function QuickViewModal({ p, t, lang, dark, addToCart, onClose, wishlist, toggle
               </div>
             </div>
             <textarea
-              className="ss-focus" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)}
-              placeholder={t.yourReview} rows={3}
+              className="ss-focus" value={reviewComment} onChange={(e) => setReviewComment(e.target.value.slice(0, 500))}
+              placeholder={t.yourReview} rows={3} maxLength={500}
               style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 13, resize: "vertical", marginBottom: 10 }}
             />
             <button className="ss-btn ss-caption" disabled={reviewRating < 1 || !reviewComment.trim()} onClick={handleSubmitReview}
@@ -2066,10 +1814,17 @@ function ChatWidget({ open, onOpen, onClose, lang, dark }) {
 }
 
 function ModalShell({ children, onClose, dark, width = 480 }) {
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#0009", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div onClick={onClose} role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, background: "#0009", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} className="ss-fade-in" style={{ background: dark ? C.plum900 : "#fff", color: dark ? C.ivory50 : C.ink900, borderRadius: 18, padding: 24, width: "100%", maxWidth: width, maxHeight: "88vh", overflowY: "auto", position: "relative", border: `1px solid ${C.gold400}44` }}>
-        <button onClick={onClose} className="ss-btn" style={{ position: "absolute", top: 14, right: 14, background: "none", color: dark ? C.ivory50 : C.ink900 }}><X size={18} /></button>
+        <button onClick={onClose} className="ss-btn" aria-label="Close" style={{ position: "absolute", top: 14, right: 14, background: "none", color: dark ? C.ivory50 : C.ink900 }}><X size={18} /></button>
         {children}
       </div>
     </div>
@@ -2108,15 +1863,23 @@ function CartLineItem({ c, t, lang, dark, setCartQty, removeFromCart }) {
 }
 
 function CartDrawer({ open, onClose, t, lang, dark, cartDetailed, setCartQty, removeFromCart, subtotal, go }) {
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
   return (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-hidden={!open} style={{
       position: "fixed", top: 0, right: 0, bottom: 0, width: "min(380px, 100%)", zIndex: 250,
       background: dark ? C.plum900 : "#fff", color: dark ? C.ivory50 : C.ink900, boxShadow: "-10px 0 30px -10px #0006",
       transform: open ? "translateX(0)" : "translateX(105%)", transition: "transform .3s ease", display: "flex", flexDirection: "column",
     }}>
       <div style={{ padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.gold400}33` }}>
         <span className="ss-display" style={{ fontSize: 19, fontWeight: 700 }}>{t.yourCart}</span>
-        <button className="ss-btn" onClick={onClose} style={{ background: "none", color: "inherit" }}><X size={18} /></button>
+        <button className="ss-btn" onClick={onClose} aria-label="Close" style={{ background: "none", color: "inherit" }}><X size={18} /></button>
       </div>
       <div className="ss-scroll" style={{ flex: 1, overflowY: "auto", padding: "0 18px" }}>
         {cartDetailed.length === 0 ? (
@@ -2347,6 +2110,7 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
       const order = {
         id: genId("SS"),
         date: new Date().toISOString(),
+        email: auth.email,
         items: cartDetailed.map((c) => ({ id: c.id, name: c.product.nameEn, qty: c.qty, price: c.product.price })),
         address, payment, paymentLabel: payment === "esewa" ? t.esewa : payment === "bank" ? t.bank : t.cod,
         paymentProof: payment === "bank" ? proofFile : null,
@@ -2499,10 +2263,14 @@ function inputStyle(dark) {
 }
 const fieldErrorStyle = { color: "#D14343", fontSize: 11.5, marginTop: 4, display: "flex", alignItems: "center", gap: 4 };
 function FormRow({ label, children }) {
+  const id = useId();
+  const child = React.isValidElement(children) && !children.props.id
+    ? React.cloneElement(children, { id, "aria-label": typeof label === "string" ? label : undefined })
+    : children;
   return (
     <div style={{ marginBottom: 12 }}>
-      <label className="ss-caption" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>{label}</label>
-      {children}
+      <label htmlFor={React.isValidElement(children) ? id : undefined} className="ss-caption" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>{label}</label>
+      {child}
     </div>
   );
 }
@@ -2552,13 +2320,25 @@ function WishlistPage({ t, lang, dark, products, wishlist, toggleWishlist, revie
   );
 }
 
-function OrdersPage({ t, lang, dark, orders, go }) {
+function OrdersPage({ t, lang, dark, orders, setOrders, auth, go, showToast }) {
   const statusColor = { pending: C.gold400, processing: "#3E7CB1", shipped: "#8355C9", delivered: "#2E9E5B", cancelled: "#D14343" };
   const statusLabel = { pending: t.pending, processing: t.processing, shipped: t.shipped, delivered: t.delivered, cancelled: t.cancelled };
+  const [confirmingId, setConfirmingId] = useState(null);
+  const cancellableStatuses = ["pending", "processing"];
+  // Only show this customer's own orders — "orders" holds every customer's
+  // orders shared across devices, so this must be filtered by their email.
+  const myOrders = orders.filter((o) => o.email && auth?.email && o.email === auth.email);
+
+  function cancelOrder(id) {
+    setOrders(orders.map((o) => (o.id === id ? { ...o, status: "cancelled" } : o)));
+    setConfirmingId(null);
+    showToast && showToast(t.orderCancelledToast);
+  }
+
   return (
     <div style={{ maxWidth: 700, margin: "0 auto", padding: "32px 20px 60px" }}>
       <SectionHeading title={t.myOrders} dark={dark} />
-      {orders.length === 0 ? (
+      {myOrders.length === 0 ? (
         <div style={{ padding: 50, textAlign: "center", color: C.ink600 }}>
           <Package size={36} style={{ opacity: 0.4, marginBottom: 10 }} />
           <p>{lang === "en" ? "No orders yet." : "अहिलेसम्म कुनै अर्डर छैन।"}</p>
@@ -2566,19 +2346,43 @@ function OrdersPage({ t, lang, dark, orders, go }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 18 }}>
-          {orders.map((o) => (
-            <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
-                <span className="ss-caption" style={{ fontWeight: 700, fontSize: 13 }}>{o.id}</span>
-                <Badge tone="ghost"><span style={{ color: statusColor[o.status] }}>● {statusLabel[o.status]}</span></Badge>
+          {myOrders.map((o) => {
+            const canCancel = cancellableStatuses.includes(o.status);
+            const isConfirming = confirmingId === o.id;
+            return (
+              <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                  <span className="ss-caption" style={{ fontWeight: 700, fontSize: 13 }}>{o.id}</span>
+                  <Badge tone="ghost"><span style={{ color: statusColor[o.status] }}>● {statusLabel[o.status]}</span></Badge>
+                </div>
+                <div style={{ fontSize: 12, color: C.ink600, marginBottom: 8 }}>{new Date(o.date).toLocaleString()}</div>
+                {o.items.map((it, i) => <div key={i} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span>{it.name} × {it.qty}</span><span>{fmtNPR(it.price * it.qty)}</span></div>)}
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 14, marginTop: 8, borderTop: `1px solid ${C.gold400}22`, paddingTop: 8 }}>
+                  <span>{t.total}</span><span>{fmtNPR(o.total)}</span>
+                </div>
+
+                {isConfirming ? (
+                  <div className="ss-fade-in" style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.gold400}22` }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.confirmCancelTitle}</div>
+                    <div style={{ fontSize: 12.5, color: C.ink600, marginBottom: 10 }}>{t.confirmCancelBody}</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="ss-btn ss-caption" onClick={() => setConfirmingId(null)} style={{ flex: 1, background: "none", border: `1px solid ${C.gold400}55`, padding: "9px", borderRadius: 9, fontSize: 12.5, color: dark ? C.ivory50 : C.ink900 }}>{t.keepOrder}</button>
+                      <button className="ss-btn ss-caption" onClick={() => cancelOrder(o.id)} style={{ flex: 1, background: "#D14343", color: "#fff", padding: "9px", borderRadius: 9, fontSize: 12.5, fontWeight: 600 }}>{t.yesCancelOrder}</button>
+                    </div>
+                  </div>
+                ) : canCancel ? (
+                  <button className="ss-btn ss-caption" onClick={() => setConfirmingId(o.id)}
+                    style={{ marginTop: 12, background: "none", border: `1px solid #D1434366`, color: "#D14343", padding: "8px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <X size={13} /> {t.cancelOrder}
+                  </button>
+                ) : o.status !== "cancelled" && (
+                  <div style={{ marginTop: 10, fontSize: 11.5, color: C.ink600, display: "flex", alignItems: "center", gap: 5 }}>
+                    <AlertCircle size={12} /> {t.cannotCancelNote}
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: 12, color: C.ink600, marginBottom: 8 }}>{new Date(o.date).toLocaleString()}</div>
-              {o.items.map((it, i) => <div key={i} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span>{it.name} × {it.qty}</span><span>{fmtNPR(it.price * it.qty)}</span></div>)}
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 14, marginTop: 8, borderTop: `1px solid ${C.gold400}22`, paddingTop: 8 }}>
-                <span>{t.total}</span><span>{fmtNPR(o.total)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -2588,6 +2392,23 @@ function OrdersPage({ t, lang, dark, orders, go }) {
 /* ============================================================
    ABOUT / CONTACT
    ============================================================ */
+function NotFoundPage({ t, lang, dark, go }) {
+  return (
+    <div style={{ maxWidth: 500, margin: "0 auto", padding: "70px 20px", textAlign: "center" }}>
+      <div style={{ fontSize: 50, marginBottom: 12 }}>🔍</div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 8, color: dark ? C.ivory50 : C.wine700 }}>
+        {lang === "en" ? "Page not found" : "पृष्ठ फेला परेन"}
+      </h2>
+      <p style={{ fontSize: 14, color: C.ink600, marginBottom: 20 }}>
+        {lang === "en" ? "Sorry, we couldn't find what you were looking for." : "माफ गर्नुहोस्, तपाईंले खोजेको कुरा फेला परेन।"}
+      </p>
+      <button className="ss-btn ss-caption" onClick={() => go("home")} style={{ background: C.wine700, color: "#fff", padding: "11px 24px", borderRadius: 999, fontSize: 13, fontWeight: 600 }}>
+        {t.backToHome}
+      </button>
+    </div>
+  );
+}
+
 function AboutPage({ t, lang, dark }) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 60px" }}>
@@ -2728,14 +2549,46 @@ function Footer({ t, lang, dark, go }) {
 /* ============================================================
    ADMIN GATE
    ============================================================ */
-function AdminGate({ t, dark, onSuccess, onCancel }) {
+function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
   const DEMO_PASSWORD = "shringar123";
+  const MAX_ATTEMPTS = 5;
+  const LOCK_MS = 60000;
+
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(LS_PREFIX + "admin-lock-until") || 0);
+    if (saved > Date.now()) setLockedUntil(saved);
+  }, []);
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [lockedUntil]);
+
+  const isLocked = lockedUntil > now;
+  const secondsLeft = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
+
   function submit() {
-    if (pw === DEMO_PASSWORD) onSuccess();
-    else setError(t.wrongPassword);
+    if (isLocked) return;
+    if (pw === DEMO_PASSWORD) {
+      onSuccess();
+      return;
+    }
+    const nextAttempts = attempts + 1;
+    setAttempts(nextAttempts);
+    if (nextAttempts >= MAX_ATTEMPTS) {
+      const until = Date.now() + LOCK_MS;
+      setLockedUntil(until);
+      window.localStorage.setItem(LS_PREFIX + "admin-lock-until", String(until));
+      setError(lang === "en" ? `Too many attempts. Try again in ${LOCK_MS / 1000}s.` : `धेरै प्रयास भयो। ${LOCK_MS / 1000} सेकेन्डपछि फेरि प्रयास गर्नुहोस्।`);
+    } else {
+      setError(t.wrongPassword);
+    }
   }
   return (
     <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -2746,14 +2599,18 @@ function AdminGate({ t, dark, onSuccess, onCancel }) {
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
         <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
         <div style={{ position: "relative", marginBottom: 10 }}>
-          <input type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={t.adminPassword} className="ss-focus" style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14 }} />
-          <button className="ss-btn" onClick={() => setShow((s) => !s)} style={{ position: "absolute", right: 10, top: 10, background: "none", color: C.ink600 }}>{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+          <input type={show ? "text" : "password"} value={pw} disabled={isLocked} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder={t.adminPassword} className="ss-focus" aria-label={t.adminPassword} style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14, opacity: isLocked ? 0.5 : 1 }} />
+          <button className="ss-btn" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"} style={{ position: "absolute", right: 10, top: 10, background: "none", color: C.ink600 }}>{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
         </div>
-        {error && <div style={{ color: "#D14343", fontSize: 12, marginBottom: 8 }}>{error}</div>}
+        {isLocked ? (
+          <div style={{ color: "#D14343", fontSize: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <AlertCircle size={13} /> {lang === "en" ? `Locked. Try again in ${secondsLeft}s.` : `लक भयो। ${secondsLeft} सेकेन्डमा फेरि प्रयास गर्नुहोस्।`}
+          </div>
+        ) : error && <div style={{ color: "#D14343", fontSize: 12, marginBottom: 8 }}>{error}</div>}
         <div style={{ display: "flex", gap: 8 }}>
           <button className="ss-btn ss-caption" onClick={onCancel} style={{ flex: 1, background: "none", border: `1px solid ${C.gold400}55`, padding: 11, borderRadius: 10, fontSize: 13, color: dark ? C.ivory50 : C.ink900 }}>{t.cancel}</button>
-          <button className="ss-btn ss-caption" onClick={submit} style={{ flex: 1, background: C.wine700, color: "#fff", padding: 11, borderRadius: 10, fontSize: 13, fontWeight: 600 }}>{t.enter}</button>
+          <button className="ss-btn ss-caption" onClick={submit} disabled={isLocked} style={{ flex: 1, background: C.wine700, color: "#fff", padding: 11, borderRadius: 10, fontSize: 13, fontWeight: 600, opacity: isLocked ? 0.5 : 1 }}>{t.enter}</button>
         </div>
       </div>
     </div>
