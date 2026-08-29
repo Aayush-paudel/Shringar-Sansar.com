@@ -2597,7 +2597,7 @@ function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
           <Lock size={22} color="#fff" />
         </div>
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
-        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
+        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}></p>
         <div style={{ position: "relative", marginBottom: 10 }}>
           <input type={show ? "text" : "password"} value={pw} disabled={isLocked} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder={t.adminPassword} className="ss-focus" aria-label={t.adminPassword} style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14, opacity: isLocked ? 0.5 : 1 }} />
