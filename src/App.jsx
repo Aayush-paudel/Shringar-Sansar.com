@@ -472,6 +472,7 @@ function ShringarSansarApp() {
   const [loginHistory, setLoginHistory] = useState([]);
   const [offers, setOffers] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [coupons, setCouponsState] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [cloudReady, setCloudReady] = useState(false);
@@ -521,6 +522,7 @@ function ShringarSansarApp() {
         setLoginHistory(Array.isArray(cloud.loginHistory) ? cloud.loginHistory : []);
         setOffers(Array.isArray(cloud.offers) ? cloud.offers : []);
         setReviews(Array.isArray(cloud.reviews) ? cloud.reviews : []);
+        setCouponsState(Array.isArray(cloud.coupons) ? cloud.coupons : []);
         setOrders(Array.isArray(cloud.orders) ? cloud.orders : []);
         setCloudReady(true);
       } else {
@@ -535,7 +537,7 @@ function ShringarSansarApp() {
         const storedOrdersFallback = await storageGet("orders", false, []);
         setOrders(storedOrdersFallback || []);
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [], coupons: [] });
           if (seeded) setCloudReady(true);
         }
       }
@@ -575,46 +577,105 @@ function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory, offers, reviews, orders });
-  }, [loginHistory, offers, reviews, orders]);
+    await cloudSave({ products: next, loginHistory, offers, reviews, orders, coupons });
+  }, [loginHistory, offers, reviews, orders, coupons]);
 
   const persistOffers = useCallback(async (next) => {
     setOffers(next);
-    await cloudSave({ products, loginHistory, offers: next, reviews, orders });
-  }, [products, loginHistory, reviews, orders]);
+    await cloudSave({ products, loginHistory, offers: next, reviews, orders, coupons });
+  }, [products, loginHistory, reviews, orders, coupons]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next, offers, reviews, orders });
+      cloudSave({ products, loginHistory: next, offers, reviews, orders, coupons });
       return next;
     });
-  }, [products, offers, reviews, orders]);
+  }, [products, offers, reviews, orders, coupons]);
 
   const addReview = useCallback((review) => {
     setReviews((prev) => {
       const next = [review, ...prev];
-      cloudSave({ products, loginHistory, offers, reviews: next, orders });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons });
       return next;
     });
-  }, [products, loginHistory, offers, orders]);
+  }, [products, loginHistory, offers, orders, coupons]);
 
   const deleteReview = useCallback((reviewId) => {
     setReviews((prev) => {
       const next = prev.filter((r) => r.id !== reviewId);
-      cloudSave({ products, loginHistory, offers, reviews: next, orders });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons });
       return next;
     });
-  }, [products, loginHistory, offers, orders]);
+  }, [products, loginHistory, offers, orders, coupons]);
 
   // Every order create/update/cancel goes through this so orders are
   // shared across every device — the admin panel and each customer's
   // own "My Orders" page always reflect the same real, current data.
   const persistOrders = useCallback(async (next) => {
     setOrders(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders: next });
-  }, [products, loginHistory, offers, reviews]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders: next, coupons });
+  }, [products, loginHistory, offers, reviews, coupons]);
+
+  const persistCoupons = useCallback(async (next) => {
+    setCouponsState(next);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons: next });
+  }, [products, loginHistory, offers, reviews, orders]);
+
+  // Adjusts real product stock when an order is placed (decrement) or
+  // cancelled (restock). Combo/offer items ("combo:offerId") don't map to
+  // a real product directly, so their qty is applied to every product
+  // bundled inside that offer instead.
+  function computeStockDeltas(items) {
+    const deltas = {};
+    for (const item of items) {
+      if (typeof item.id === "string" && item.id.startsWith("combo:")) {
+        const offerId = item.id.slice("combo:".length);
+        const offer = offers.find((o) => o.id === offerId);
+        (offer?.productIds || []).forEach((pid) => {
+          deltas[pid] = (deltas[pid] || 0) + item.qty;
+        });
+      } else {
+        deltas[item.id] = (deltas[item.id] || 0) + item.qty;
+      }
+    }
+    return deltas;
+  }
+  const adjustStockForItems = useCallback((items, sign) => {
+    const deltas = computeStockDeltas(items);
+    if (Object.keys(deltas).length === 0) return;
+    const next = products.map((p) => (deltas[p.id] ? { ...p, stock: Math.max(0, p.stock + sign * deltas[p.id]) } : p));
+    persistProducts(next);
+  }, [products, offers, persistProducts]);
+
+  // Placing an order touches three things at once (orders, product stock,
+  // and coupon usage count) — this writes all three in a single atomic
+  // cloud save so nothing gets silently overwritten by a stale snapshot.
+  const placeOrder = useCallback((order, usedCoupon) => {
+    const deltas = computeStockDeltas(order.items);
+    const nextProducts = Object.keys(deltas).length
+      ? products.map((p) => (deltas[p.id] ? { ...p, stock: Math.max(0, p.stock - deltas[p.id]) } : p))
+      : products;
+    const nextOrders = [order, ...orders];
+    const nextCoupons = usedCoupon
+      ? coupons.map((c) => (c.id === usedCoupon.id ? { ...c, usedCount: (c.usedCount || 0) + 1 } : c))
+      : coupons;
+    setProducts(nextProducts);
+    setOrders(nextOrders);
+    setCouponsState(nextCoupons);
+    storageSet("products", nextProducts, true);
+    cloudSave({ products: nextProducts, loginHistory, offers, reviews, orders: nextOrders, coupons: nextCoupons });
+  }, [products, orders, coupons, offers, loginHistory, reviews]);
+
+  const updateOrderStatus = useCallback((orderId, newStatus) => {
+    const target = orders.find((o) => o.id === orderId);
+    if (!target) return;
+    if (newStatus === "cancelled" && target.status !== "cancelled") {
+      adjustStockForItems(target.items, 1); // restock since the sale fell through
+    }
+    persistOrders(orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
+  }, [orders, persistOrders, adjustStockForItems]);
 
   function toggleWishlist(productId) {
     setWishlist((prev) => {
@@ -773,10 +834,11 @@ function ShringarSansarApp() {
         <AdminApp
           t={t} lang={lang} dark={dark}
           products={products} setProducts={persistProducts}
-          orders={orders} setOrders={persistOrders}
+          orders={orders} updateOrderStatus={updateOrderStatus}
           visitorCount={visitorCount} loginHistory={loginHistory}
           offers={offers} setOffers={persistOffers}
           reviews={reviews} deleteReview={deleteReview}
+          coupons={coupons} setCoupons={persistCoupons}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -822,14 +884,14 @@ function ShringarSansarApp() {
             {route.page === "checkout" && (
               <CheckoutFlow
                 t={t} lang={lang} dark={dark} cartDetailed={cartDetailed} subtotal={cartSubtotal}
-                auth={auth} setLoginOpen={setLoginOpen} go={go}
-                onOrderPlaced={(order) => {
-                  persistOrders([order, ...orders]);
+                auth={auth} setLoginOpen={setLoginOpen} go={go} coupons={coupons}
+                onOrderPlaced={(order, usedCoupon) => {
+                  placeOrder(order, usedCoupon);
                   setCart([]);
                 }}
               />
             )}
-            {route.page === "orders" && <OrdersPage t={t} lang={lang} dark={dark} orders={orders} setOrders={persistOrders} auth={auth} go={go} showToast={showToast} />}
+            {route.page === "orders" && <OrdersPage t={t} lang={lang} dark={dark} orders={orders} updateOrderStatus={updateOrderStatus} auth={auth} go={go} showToast={showToast} />}
             {route.page === "admin-gate" && (
               <AdminGate t={t} dark={dark} lang={lang} onSuccess={() => setAdminMode(true)} onCancel={() => go("home")} />
             )}
@@ -2027,7 +2089,7 @@ function Stepper({ steps, current, dark }) {
   );
 }
 
-function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpen, go, onOrderPlaced }) {
+function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpen, go, onOrderPlaced, coupons }) {
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState({ fullName: "", phone: "", province: "Bagmati", district: "", municipality: "", ward: "", landmark: "" });
   const [addressErrors, setAddressErrors] = useState({});
@@ -2035,11 +2097,33 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
   const [proofFile, setProofFile] = useState(null);
   const [proofName, setProofName] = useState("");
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState("");
 
   const isValley = address.province === "Bagmati";
   const deliveryFee = cartDetailed.length ? (isValley ? 100 : 250) : 0;
   const codHandling = payment === "cod" && !isValley ? 150 : 0;
-  const total = subtotal + deliveryFee + codHandling;
+  const couponDiscount = appliedCoupon
+    ? (appliedCoupon.type === "percent" ? Math.round(subtotal * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, subtotal))
+    : 0;
+  const total = Math.max(0, subtotal - couponDiscount) + deliveryFee + codHandling;
+
+  function applyCoupon() {
+    setCouponError("");
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    const found = (coupons || []).find((c) => c.code === code);
+    if (!found || !found.active) { setCouponError(t.couponInvalid); return; }
+    if (found.expiry && new Date(found.expiry) < new Date()) { setCouponError(t.couponExpired); return; }
+    if (found.minOrder && subtotal < found.minOrder) { setCouponError(t.couponMinOrder.replace("{min}", fmtNPR(found.minOrder))); return; }
+    setAppliedCoupon(found);
+    setCouponInput("");
+  }
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponError("");
+  }
 
   if (cartDetailed.length === 0 && !confirmedOrder) {
     return (
@@ -2065,6 +2149,7 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
           <Row label={t.fullName} value={confirmedOrder.address.fullName} />
           <Row label={t.step2} value={`${confirmedOrder.address.municipality}-${confirmedOrder.address.ward}, ${confirmedOrder.address.district}, ${confirmedOrder.address.province}`} />
           <Row label={t.paymentMethod} value={confirmedOrder.paymentLabel} />
+          {confirmedOrder.couponDiscount > 0 && <Row label={`${t.discount} (${confirmedOrder.couponCode})`} value={`− ${fmtNPR(confirmedOrder.couponDiscount)}`} />}
           <Row label={t.total} value={fmtNPR(confirmedOrder.total)} bold />
           {confirmedOrder.payment !== "esewa" && (
             <div style={{ marginTop: 12, background: C.gold400 + "22", border: `1px dashed ${C.gold400}`, borderRadius: 10, padding: 10, fontSize: 12.5, display: "flex", gap: 6 }}>
@@ -2114,11 +2199,12 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
         items: cartDetailed.map((c) => ({ id: c.id, name: c.product.nameEn, qty: c.qty, price: c.product.price })),
         address, payment, paymentLabel: payment === "esewa" ? t.esewa : payment === "bank" ? t.bank : t.cod,
         paymentProof: payment === "bank" ? proofFile : null,
+        couponCode: appliedCoupon?.code || null, couponDiscount,
         subtotal, deliveryFee, codHandling, total,
         status: "pending",
       };
       setConfirmedOrder(order);
-      onOrderPlaced(order);
+      onOrderPlaced(order, appliedCoupon);
     }
   }
 
@@ -2240,8 +2326,31 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
               <div style={{ fontSize: 12.5, color: C.rose500, display: "flex", gap: 6, alignItems: "center" }}><AlertCircle size={13} /> {t.codOutside} (+{fmtNPR(150)})</div>
             )}
           </div>
+
+          <div style={{ marginTop: 18 }}>
+            {appliedCoupon ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#2E9E5B18", border: "1px solid #2E9E5B55", borderRadius: 10, padding: "10px 12px" }}>
+                <span style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Tag size={13} color="#2E9E5B" /> <strong style={{ fontFamily: "monospace" }}>{appliedCoupon.code}</strong> — {t.couponApplied}
+                </span>
+                <button className="ss-btn ss-caption" onClick={removeCoupon} style={{ background: "none", color: C.rose500, fontSize: 12 }}>{t.couponRemove}</button>
+              </div>
+            ) : (
+              <div>
+                <label className="ss-caption" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>{t.haveCoupon}</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="ss-focus" style={{ ...inputStyle(dark), textTransform: "uppercase" }} value={couponInput} placeholder={t.couponCode}
+                    onChange={(e) => { setCouponInput(e.target.value); setCouponError(""); }} onKeyDown={(e) => e.key === "Enter" && applyCoupon()} />
+                  <button className="ss-btn ss-caption" onClick={applyCoupon} style={{ background: C.wine700, color: "#fff", padding: "0 18px", borderRadius: 9, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{t.applyCoupon}</button>
+                </div>
+                {couponError && <div style={fieldErrorStyle}><AlertCircle size={11} /> {couponError}</div>}
+              </div>
+            )}
+          </div>
+
           <div style={{ marginTop: 20, borderTop: `1px solid ${C.gold400}33`, paddingTop: 14 }}>
             <Row label={t.subtotal} value={fmtNPR(subtotal)} />
+            {couponDiscount > 0 && <Row label={`${t.discount} (${appliedCoupon.code})`} value={`− ${fmtNPR(couponDiscount)}`} />}
             <Row label={t.deliveryFee} value={fmtNPR(deliveryFee)} />
             {codHandling > 0 && <Row label={t.cod} value={fmtNPR(codHandling)} />}
             <Row label={t.total} value={fmtNPR(total)} bold />
@@ -2320,7 +2429,7 @@ function WishlistPage({ t, lang, dark, products, wishlist, toggleWishlist, revie
   );
 }
 
-function OrdersPage({ t, lang, dark, orders, setOrders, auth, go, showToast }) {
+function OrdersPage({ t, lang, dark, orders, updateOrderStatus, auth, go, showToast }) {
   const statusColor = { pending: C.gold400, processing: "#3E7CB1", shipped: "#8355C9", delivered: "#2E9E5B", cancelled: "#D14343" };
   const statusLabel = { pending: t.pending, processing: t.processing, shipped: t.shipped, delivered: t.delivered, cancelled: t.cancelled };
   const [confirmingId, setConfirmingId] = useState(null);
@@ -2330,7 +2439,7 @@ function OrdersPage({ t, lang, dark, orders, setOrders, auth, go, showToast }) {
   const myOrders = orders.filter((o) => o.email && auth?.email && o.email === auth.email);
 
   function cancelOrder(id) {
-    setOrders(orders.map((o) => (o.id === id ? { ...o, status: "cancelled" } : o)));
+    updateOrderStatus(id, "cancelled");
     setConfirmingId(null);
     showToast && showToast(t.orderCancelledToast);
   }
@@ -2597,7 +2706,7 @@ function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
           <Lock size={22} color="#fff" />
         </div>
         <h3 className="ss-display" style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{t.adminLoginTitle}</h3>
-        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}></p>
+        <p style={{ fontSize: 11.5, color: C.ink600, marginBottom: 16 }}>Demo password: shringar123</p>
         <div style={{ position: "relative", marginBottom: 10 }}>
           <input type={show ? "text" : "password"} value={pw} disabled={isLocked} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder={t.adminPassword} className="ss-focus" aria-label={t.adminPassword} style={{ width: "100%", boxSizing: "border-box", padding: "11px 40px 11px 12px", borderRadius: 10, border: `1px solid ${C.gold400}55`, background: dark ? C.plum950 : "#fff", color: dark ? C.ivory50 : C.ink900, fontSize: 14, opacity: isLocked ? 0.5 : 1 }} />
@@ -2620,7 +2729,7 @@ function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderStatus, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, coupons, setCoupons, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -2629,6 +2738,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
     { id: "overview", label: t.overview, icon: LayoutDashboard },
     { id: "products", label: t.products, icon: Gem },
     { id: "offers", label: t.specialOffers, icon: Gift },
+    { id: "coupons", label: lang === "en" ? "Coupons" : "कुपन", icon: Tag },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
     { id: "reviews", label: lang === "en" ? "Reviews" : "समीक्षा", icon: Star },
@@ -2664,7 +2774,8 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, setOrders, vis
         {tab === "overview" && <AdminOverview t={t} lang={lang} dark={dark} products={products} orders={orders} visitorCount={visitorCount} />}
         {tab === "products" && <AdminProducts t={t} lang={lang} dark={dark} products={products} setProducts={setProducts} />}
         {tab === "offers" && <AdminOffers t={t} lang={lang} dark={dark} offers={offers} setOffers={setOffers} products={products} />}
-        {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} setOrders={setOrders} />}
+        {tab === "coupons" && <AdminCoupons t={t} lang={lang} dark={dark} coupons={coupons} setCoupons={setCoupons} />}
+        {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} updateOrderStatus={updateOrderStatus} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
         {tab === "reviews" && <AdminReviews t={t} lang={lang} dark={dark} reviews={reviews} products={products} deleteReview={deleteReview} />}
         {tab === "logins" && <AdminLoginHistory t={t} lang={lang} dark={dark} loginHistory={loginHistory} />}
@@ -3064,12 +3175,113 @@ function AdminOffers({ t, lang, dark, offers, setOffers, products }) {
   );
 }
 
-function AdminOrders({ t, lang, dark, orders, setOrders }) {
+function emptyCouponDraft() {
+  return { code: "", type: "percent", value: "", minOrder: "", expiry: "", active: true };
+}
+
+function AdminCoupons({ t, lang, dark, coupons, setCoupons }) {
+  const [draft, setDraft] = useState(emptyCouponDraft());
+  const [editingId, setEditingId] = useState(null);
+
+  function resetForm() { setDraft(emptyCouponDraft()); setEditingId(null); }
+
+  function saveCoupon() {
+    const code = draft.code.trim().toUpperCase();
+    if (!code || !draft.value) return;
+    if (editingId) {
+      setCoupons(coupons.map((c) => (c.id === editingId ? { ...c, ...draft, code, value: Number(draft.value), minOrder: draft.minOrder ? Number(draft.minOrder) : 0 } : c)));
+    } else {
+      if (coupons.some((c) => c.code === code)) return; // avoid duplicate codes
+      const newCoupon = { id: genId("coupon"), ...draft, code, value: Number(draft.value), minOrder: draft.minOrder ? Number(draft.minOrder) : 0, usedCount: 0, createdAt: new Date().toISOString() };
+      setCoupons([newCoupon, ...coupons]);
+    }
+    resetForm();
+  }
+  function editCoupon(c) {
+    setDraft({ code: c.code, type: c.type, value: String(c.value), minOrder: c.minOrder ? String(c.minOrder) : "", expiry: c.expiry || "", active: !!c.active });
+    setEditingId(c.id);
+  }
+  function deleteCoupon(id) {
+    setCoupons(coupons.filter((c) => c.id !== id));
+    if (editingId === id) resetForm();
+  }
+  function toggleActive(c) {
+    setCoupons(coupons.map((x) => (x.id === c.id ? { ...x, active: !x.active } : x)));
+  }
+
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Coupons" : "कुपन"}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>
+        {lang === "en" ? "Create discount codes customers can enter at checkout." : "ग्राहकले चेकआउटमा राख्न सक्ने छुट कोडहरू बनाउनुहोस्।"}
+      </p>
+
+      <div style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+        <div className="ss-caption" style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>{editingId ? t.edit : t.createCoupon}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          <FormRow label={t.couponCodeLabel}>
+            <input className="ss-focus" style={{ ...inputStyle(dark), textTransform: "uppercase" }} value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })} />
+          </FormRow>
+          <FormRow label={t.couponType}>
+            <select className="ss-focus" style={inputStyle(dark)} value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
+              <option value="percent">{t.percentOff}</option>
+              <option value="flat">{t.flatOff}</option>
+            </select>
+          </FormRow>
+          <FormRow label={draft.type === "percent" ? `${t.couponValue} (%)` : `${t.couponValue} (NPR)`}>
+            <input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} />
+          </FormRow>
+          <FormRow label={t.couponMinOrderLabel}>
+            <input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.minOrder} onChange={(e) => setDraft({ ...draft, minOrder: e.target.value })} />
+          </FormRow>
+          <FormRow label={t.couponExpiryLabel}>
+            <input type="date" className="ss-focus" style={inputStyle(dark)} value={draft.expiry} onChange={(e) => setDraft({ ...draft, expiry: e.target.value })} />
+          </FormRow>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13 }}>
+          <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> {t.couponActive}
+        </label>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="ss-btn ss-caption" onClick={saveCoupon} style={{ background: C.wine700, color: "#fff", padding: "10px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 }}>{t.save}</button>
+          {editingId && <button className="ss-btn ss-caption" onClick={resetForm} style={{ background: "none", border: `1px solid ${C.gold400}55`, padding: "10px 20px", borderRadius: 10, fontSize: 13, color: dark ? C.ivory50 : C.ink900 }}>{t.cancel}</button>}
+        </div>
+      </div>
+
+      {coupons.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: C.ink600, border: `1px dashed ${C.gold400}44`, borderRadius: 14 }}>{t.noCouponsYet}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {coupons.map((c) => (
+            <div key={c.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, fontFamily: "monospace", letterSpacing: "0.05em" }}>{c.code}</div>
+              <div style={{ flex: 1, minWidth: 140, fontSize: 12.5, color: C.ink600 }}>
+                {c.type === "percent" ? `${c.value}% ${t.discount.toLowerCase()}` : `${fmtNPR(c.value)} ${t.discount.toLowerCase()}`}
+                {c.minOrder > 0 && ` · min ${fmtNPR(c.minOrder)}`}
+                {c.expiry && ` · exp ${c.expiry}`}
+                {` · ${c.usedCount || 0} ${t.timesUsed}`}
+              </div>
+              <button className="ss-btn ss-caption" onClick={() => toggleActive(c)} style={{
+                background: c.active ? "#2E9E5B22" : "#99999922", color: c.active ? "#2E9E5B" : C.ink600,
+                padding: "6px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
+              }}>
+                {c.active ? (lang === "en" ? "Active" : "सक्रिय") : (lang === "en" ? "Hidden" : "लुकेको")}
+              </button>
+              <button className="ss-btn" onClick={() => editCoupon(c)} style={{ background: "none", color: C.wine700 }}><Edit2 size={15} /></button>
+              <button className="ss-btn" onClick={() => deleteCoupon(c.id)} style={{ background: "none", color: "#D14343" }}><Trash2 size={15} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminOrders({ t, lang, dark, orders, updateOrderStatus }) {
   const [expanded, setExpanded] = useState({});
   const [zoomImage, setZoomImage] = useState(null);
 
   function updateStatus(id, status) {
-    setOrders(orders.map((o) => (o.id === id ? { ...o, status } : o)));
+    updateOrderStatus(id, status);
   }
   function exportCSV() {
     const rows = [["Order ID", "Date", "Customer", "Phone", "Total", "Status"], ...orders.map((o) => [o.id, o.date, o.address.fullName, o.address.phone, o.total, o.status])];
