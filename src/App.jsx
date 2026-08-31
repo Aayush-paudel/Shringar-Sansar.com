@@ -473,6 +473,7 @@ function ShringarSansarApp() {
   const [offers, setOffers] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [coupons, setCouponsState] = useState([]);
+  const [posts, setPostsState] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [cloudReady, setCloudReady] = useState(false);
@@ -523,6 +524,7 @@ function ShringarSansarApp() {
         setOffers(Array.isArray(cloud.offers) ? cloud.offers : []);
         setReviews(Array.isArray(cloud.reviews) ? cloud.reviews : []);
         setCouponsState(Array.isArray(cloud.coupons) ? cloud.coupons : []);
+        setPostsState(Array.isArray(cloud.posts) ? cloud.posts : []);
         setOrders(Array.isArray(cloud.orders) ? cloud.orders : []);
         setCloudReady(true);
       } else {
@@ -537,7 +539,7 @@ function ShringarSansarApp() {
         const storedOrdersFallback = await storageGet("orders", false, []);
         setOrders(storedOrdersFallback || []);
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [], coupons: [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [], coupons: [], posts: [] });
           if (seeded) setCloudReady(true);
         }
       }
@@ -577,51 +579,56 @@ function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory, offers, reviews, orders, coupons });
-  }, [loginHistory, offers, reviews, orders, coupons]);
+    await cloudSave({ products: next, loginHistory, offers, reviews, orders, coupons, posts });
+  }, [loginHistory, offers, reviews, orders, coupons, posts]);
 
   const persistOffers = useCallback(async (next) => {
     setOffers(next);
-    await cloudSave({ products, loginHistory, offers: next, reviews, orders, coupons });
-  }, [products, loginHistory, reviews, orders, coupons]);
+    await cloudSave({ products, loginHistory, offers: next, reviews, orders, coupons, posts });
+  }, [products, loginHistory, reviews, orders, coupons, posts]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next, offers, reviews, orders, coupons });
+      cloudSave({ products, loginHistory: next, offers, reviews, orders, coupons, posts });
       return next;
     });
-  }, [products, offers, reviews, orders, coupons]);
+  }, [products, offers, reviews, orders, coupons, posts]);
 
   const addReview = useCallback((review) => {
     setReviews((prev) => {
       const next = [review, ...prev];
-      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts });
       return next;
     });
-  }, [products, loginHistory, offers, orders, coupons]);
+  }, [products, loginHistory, offers, orders, coupons, posts]);
 
   const deleteReview = useCallback((reviewId) => {
     setReviews((prev) => {
       const next = prev.filter((r) => r.id !== reviewId);
-      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts });
       return next;
     });
-  }, [products, loginHistory, offers, orders, coupons]);
+  }, [products, loginHistory, offers, orders, coupons, posts]);
 
   // Every order create/update/cancel goes through this so orders are
   // shared across every device — the admin panel and each customer's
   // own "My Orders" page always reflect the same real, current data.
   const persistOrders = useCallback(async (next) => {
     setOrders(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders: next, coupons });
-  }, [products, loginHistory, offers, reviews, coupons]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders: next, coupons, posts });
+  }, [products, loginHistory, offers, reviews, coupons, posts]);
 
   const persistCoupons = useCallback(async (next) => {
     setCouponsState(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons: next });
-  }, [products, loginHistory, offers, reviews, orders]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons: next, posts });
+  }, [products, loginHistory, offers, reviews, orders, posts]);
+
+  const persistPosts = useCallback(async (next) => {
+    setPostsState(next);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons, posts: next });
+  }, [products, loginHistory, offers, reviews, orders, coupons]);
 
   // Adjusts real product stock when an order is placed (decrement) or
   // cancelled (restock). Combo/offer items ("combo:offerId") don't map to
@@ -665,8 +672,8 @@ function ShringarSansarApp() {
     setOrders(nextOrders);
     setCouponsState(nextCoupons);
     storageSet("products", nextProducts, true);
-    cloudSave({ products: nextProducts, loginHistory, offers, reviews, orders: nextOrders, coupons: nextCoupons });
-  }, [products, orders, coupons, offers, loginHistory, reviews]);
+    cloudSave({ products: nextProducts, loginHistory, offers, reviews, orders: nextOrders, coupons: nextCoupons, posts });
+  }, [products, orders, coupons, offers, loginHistory, reviews, posts]);
 
   const updateOrderStatus = useCallback((orderId, newStatus) => {
     const target = orders.find((o) => o.id === orderId);
@@ -839,6 +846,7 @@ function ShringarSansarApp() {
           offers={offers} setOffers={persistOffers}
           reviews={reviews} deleteReview={deleteReview}
           coupons={coupons} setCoupons={persistCoupons}
+          posts={posts} setPosts={persistPosts}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -859,7 +867,7 @@ function ShringarSansarApp() {
                 t={t} lang={lang} dark={dark} products={products} offers={offers} go={go} addToCart={addToCart} addComboToCart={addComboToCart}
                 visitorCount={visitorCount} reviews={reviews} wishlist={wishlist} toggleWishlist={toggleWishlist}
                 recentlyViewed={recentlyViewed} recordRecentlyViewed={recordRecentlyViewed} auth={auth}
-                orders={orders} addReview={addReview} onRequestLogin={() => setLoginOpen(true)}
+                orders={orders} addReview={addReview} onRequestLogin={() => setLoginOpen(true)} posts={posts}
               />
             )}
             {route.page === "shop" && (
@@ -896,8 +904,10 @@ function ShringarSansarApp() {
               <AdminGate t={t} dark={dark} lang={lang} onSuccess={() => setAdminMode(true)} onCancel={() => go("home")} />
             )}
             {route.page === "about" && <AboutPage t={t} lang={lang} dark={dark} />}
+            {route.page === "blog" && <BlogPage t={t} lang={lang} dark={dark} posts={posts} initialPostId={route.postId} />}
+            {route.page === "returns" && <ReturnPolicyPage t={t} lang={lang} dark={dark} />}
             {route.page === "contact" && <ContactPage t={t} lang={lang} dark={dark} onOpenChat={() => setChatOpen(true)} />}
-            {!["home", "shop", "wishlist", "cart", "checkout", "orders", "admin-gate", "about", "contact"].includes(route.page) && (
+            {!["home", "shop", "wishlist", "cart", "checkout", "orders", "admin-gate", "about", "contact", "blog", "returns"].includes(route.page) && (
               <NotFoundPage t={t} lang={lang} dark={dark} go={go} />
             )}
           </main>
@@ -947,6 +957,7 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
   const navItems = [
     { key: "home", label: t.home },
     { key: "shop", label: t.shop },
+    { key: "blog", label: t.blog },
     { key: "about", label: t.about },
     { key: "contact", label: t.contact },
   ];
@@ -1103,7 +1114,7 @@ function AnimatedCounter({ to, label, dark }) {
   );
 }
 
-function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCart, visitorCount, reviews, wishlist, toggleWishlist, recentlyViewed, recordRecentlyViewed, auth, orders, addReview, onRequestLogin }) {
+function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCart, visitorCount, reviews, wishlist, toggleWishlist, recentlyViewed, recordRecentlyViewed, auth, orders, addReview, onRequestLogin, posts }) {
   const featured = products.filter((p) => p.featured);
   const [tIndex, setTIndex] = useState(0);
   const [quickView, setQuickView] = useState(null);
@@ -1286,21 +1297,49 @@ function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCa
         </div>
       </section>
 
-      {/* EVENTS / BLOG TEASER */}
+      {/* BLOG TEASER — shows real published posts once you add them in Admin */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 56px" }}>
-        <SectionHeading title={t.blog} dark={dark} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 22 }}>
-          {[
-            { icon: "🪔", en: "Teej Special: 5 Bangle Pairings to Try", np: "तीज स्पेशल: ५ चुरा जोडी सुझाव" },
-            { icon: "💄", en: "Everyday Bindi Care Tips", np: "दैनिक बिन्दी हेरचाह सुझाव" },
-            { icon: "🎉", en: "Dashain Offers Coming Soon", np: "दशैं अफर छिट्टै आउँदैछ" },
-          ].map((b, i) => (
-            <div key={i} className="ss-card" style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, padding: 20 }}>
-              <div style={{ fontSize: 28 }}>{b.icon}</div>
-              <p style={{ fontWeight: 600, marginTop: 10, fontSize: 15 }}>{lang === "en" ? b.en : b.np}</p>
-            </div>
-          ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <SectionHeading title={t.blog} dark={dark} />
+          {posts.filter((p) => p.published).length > 0 && (
+            <button className="ss-btn ss-caption" onClick={() => go("blog")} style={{ background: "none", color: C.wine700, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              {t.viewAll} <ChevronRight size={14} />
+            </button>
+          )}
         </div>
+        {posts.filter((p) => p.published).length === 0 ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 22 }}>
+            {[
+              { icon: "🪔", en: "Teej Special: 5 Bangle Pairings to Try", np: "तीज स्पेशल: ५ चुरा जोडी सुझाव" },
+              { icon: "💄", en: "Everyday Bindi Care Tips", np: "दैनिक बिन्दी हेरचाह सुझाव" },
+              { icon: "🎉", en: "Dashain Offers Coming Soon", np: "दशैं अफर छिट्टै आउँदैछ" },
+            ].map((b, i) => (
+              <div key={i} className="ss-card" style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 28 }}>{b.icon}</div>
+                <p style={{ fontWeight: 600, marginTop: 10, fontSize: 15 }}>{lang === "en" ? b.en : b.np}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 22 }}>
+            {posts.filter((p) => p.published).slice(0, 3).map((post) => (
+              <button key={post.id} onClick={() => go("blog", { postId: post.id })} className="ss-card" style={{
+                textAlign: "left", background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column",
+              }}>
+                {post.image ? (
+                  <img src={post.image} alt="" style={{ width: "100%", height: 130, objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: 130, background: `linear-gradient(135deg, ${C.wine700}, ${C.plum950})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>📖</div>
+                )}
+                <div style={{ padding: 18 }}>
+                  {post.category && <span className="ss-caption" style={{ fontSize: 10, color: C.gold400, textTransform: "uppercase" }}>{post.category}</span>}
+                  <p style={{ fontWeight: 700, marginTop: 4, fontSize: 15, lineHeight: 1.3 }}>{lang === "en" ? post.titleEn : (post.titleNp || post.titleEn)}</p>
+                  <p style={{ fontSize: 12.5, color: C.ink600, marginTop: 6, lineHeight: 1.5 }}>{(post.excerpt || "").slice(0, 90)}{(post.excerpt || "").length > 90 ? "…" : ""}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* MAP / VISIT US */}
@@ -2518,6 +2557,94 @@ function NotFoundPage({ t, lang, dark, go }) {
   );
 }
 
+function BlogPage({ t, lang, dark, posts, initialPostId }) {
+  const [selectedId, setSelectedId] = useState(initialPostId || null);
+  const published = (posts || []).filter((p) => p.published).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const selected = published.find((p) => p.id === selectedId);
+
+  if (selected) {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 60px" }}>
+        <button className="ss-btn ss-caption" onClick={() => setSelectedId(null)} style={{ background: "none", color: C.wine700, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+          <ArrowLeft size={14} /> {t.backToBlog}
+        </button>
+        {selected.image && <img src={selected.image} alt="" style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 16, marginBottom: 20 }} />}
+        {selected.category && <span className="ss-caption" style={{ fontSize: 11, color: C.gold400, textTransform: "uppercase" }}>{selected.category}</span>}
+        <h1 className="ss-display" style={{ fontSize: 28, fontWeight: 700, margin: "6px 0 8px" }}>{lang === "en" ? selected.titleEn : (selected.titleNp || selected.titleEn)}</h1>
+        <p style={{ fontSize: 12.5, color: C.ink600, marginBottom: 20 }}>{new Date(selected.date).toLocaleDateString()}</p>
+        <div style={{ fontSize: 15.5, lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
+          {lang === "en" ? selected.contentEn : (selected.contentNp || selected.contentEn)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 60px" }}>
+      <SectionHeading title={t.blog} dark={dark} />
+      {published.length === 0 ? (
+        <div style={{ padding: 50, textAlign: "center", color: C.ink600 }}>{t.noPostsYet}</div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 18, marginTop: 22 }}>
+          {published.map((post) => (
+            <button key={post.id} onClick={() => setSelectedId(post.id)} className="ss-card" style={{
+              textAlign: "left", background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column",
+            }}>
+              {post.image ? (
+                <img src={post.image} alt="" style={{ width: "100%", height: 150, objectFit: "cover" }} />
+              ) : (
+                <div style={{ width: "100%", height: 150, background: `linear-gradient(135deg, ${C.wine700}, ${C.plum950})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📖</div>
+              )}
+              <div style={{ padding: 18, flex: 1, display: "flex", flexDirection: "column" }}>
+                {post.category && <span className="ss-caption" style={{ fontSize: 10, color: C.gold400, textTransform: "uppercase" }}>{post.category}</span>}
+                <p style={{ fontWeight: 700, marginTop: 4, fontSize: 15.5, lineHeight: 1.35 }}>{lang === "en" ? post.titleEn : (post.titleNp || post.titleEn)}</p>
+                <p style={{ fontSize: 12.5, color: C.ink600, marginTop: 8, lineHeight: 1.5, flex: 1 }}>{(post.excerpt || "").slice(0, 110)}{(post.excerpt || "").length > 110 ? "…" : ""}</p>
+                <p className="ss-caption" style={{ fontSize: 11.5, color: C.wine700, fontWeight: 600, marginTop: 10 }}>{t.readMore} →</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReturnPolicyPage({ t, lang, dark }) {
+  const sections = lang === "en" ? [
+    { h: "Return Window", b: "If something isn't right, let us know within 3 days of delivery. Items must be unused, unworn, and in their original packaging with tags attached." },
+    { h: "How to Start a Return", b: `Message us on WhatsApp (${SHOP.phone}) with your Order ID and the reason for return. We'll guide you through drop-off or pickup depending on your location.` },
+    { h: "Refunds", b: "Once we receive and inspect the returned item, refunds are issued to the original payment method (or as store credit, your choice) within 5-7 business days." },
+    { h: "Exchanges", b: "Want a different size or variant instead? Let us know when you reach out — we'll arrange an exchange wherever stock allows." },
+    { h: "Non-Returnable Items", b: "For hygiene reasons, cosmetics and any custom or made-to-order pieces cannot be returned unless they arrive damaged or defective." },
+    { h: "Damaged or Wrong Items", b: "If your order arrives damaged or isn't what you ordered, contact us immediately with photos — we'll make it right at no extra cost to you." },
+  ] : [
+    { h: "फिर्ता अवधि", b: "केही ठीक नभएमा, डेलिभरीको ३ दिनभित्र हामीलाई जानकारी दिनुहोस्। सामान प्रयोग नगरिएको, नलगाइएको, र मूल प्याकेजिङ र ट्यागसहित हुनुपर्छ।" },
+    { h: "फिर्ता कसरी सुरु गर्ने", b: `आफ्नो अर्डर आईडी र फिर्ताको कारणसहित हामीलाई WhatsApp (${SHOP.phone}) मा म्यासेज गर्नुहोस्। तपाईंको स्थान अनुसार हामी ड्रप-अफ वा पिकअपको लागि मार्गदर्शन गर्नेछौं।` },
+    { h: "फिर्ता रकम", b: "फिर्ता गरिएको सामान प्राप्त र जाँच गरेपछि, ५-७ कार्य दिनभित्र मूल भुक्तानी विधिमा (वा तपाईंको छनोटमा स्टोर क्रेडिटको रूपमा) रकम फिर्ता गरिन्छ।" },
+    { h: "साटासाट", b: "फरक साइज वा विकल्प चाहनुहुन्छ? सम्पर्क गर्दा हामीलाई भन्नुहोस् — स्टक भएसम्म हामी साटासाट मिलाउनेछौं।" },
+    { h: "फिर्ता नहुने सामानहरू", b: "स्वच्छताका कारण, सौन्दर्य सामान र कुनै पनि अनुकूलित सामान क्षतिग्रस्त वा त्रुटिपूर्ण भई आएको बाहेक फिर्ता हुँदैन।" },
+    { h: "क्षतिग्रस्त वा गलत सामान", b: "तपाईंको अर्डर क्षतिग्रस्त भई आएमा वा तपाईंले अर्डर गरेको नभएमा, फोटोसहित तुरुन्त हामीलाई सम्पर्क गर्नुहोस् — हामी कुनै अतिरिक्त शुल्क बिना यसलाई सच्याउनेछौं।" },
+  ];
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto", padding: "36px 20px 60px" }}>
+      <SectionHeading title={t.returnPolicy} dark={dark} />
+      <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 20 }}>
+        {sections.map((s, i) => (
+          <div key={i}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: dark ? C.ivory50 : C.wine700 }}>{s.h}</h3>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: dark ? C.ivory100 : C.ink900 }}>{s.b}</p>
+          </div>
+        ))}
+      </div>
+      <a href={whatsappLink(lang === "en" ? "Hi Shringar Sansar, I'd like to start a return/exchange for my order." : "नमस्ते श्रृंगार संसार, म मेरो अर्डरको फिर्ता/साटासाट सुरु गर्न चाहन्छु।")}
+        target="_blank" rel="noopener noreferrer" className="ss-btn ss-caption"
+        style={{ marginTop: 26, display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", padding: "12px 22px", borderRadius: 999, fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}>
+        <WhatsappIcon size={16} color="#fff" /> {lang === "en" ? "Start a Return via WhatsApp" : "WhatsApp मार्फत फिर्ता सुरु गर्नुहोस्"}
+      </a>
+    </div>
+  );
+}
+
 function AboutPage({ t, lang, dark }) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 60px" }}>
@@ -2638,9 +2765,10 @@ function Footer({ t, lang, dark, go }) {
         </div>
         <div>
           <div className="ss-caption" style={{ fontSize: 12, fontWeight: 700, color: C.gold400, marginBottom: 10 }}>{t.shop}</div>
-          {["home", "shop", "about", "contact"].map((p) => (
+          {["home", "shop", "blog", "about", "contact"].map((p) => (
             <button key={p} className="ss-btn ss-caption" onClick={() => go(p)} style={{ display: "block", background: "none", color: C.ivory100, fontSize: 13, padding: "4px 0", opacity: 0.85 }}>{t[p]}</button>
           ))}
+          <button className="ss-btn ss-caption" onClick={() => go("returns")} style={{ display: "block", background: "none", color: C.ivory100, fontSize: 13, padding: "4px 0", opacity: 0.85 }}>{t.returnPolicy}</button>
         </div>
         <div>
           <div className="ss-caption" style={{ fontSize: 12, fontWeight: 700, color: C.gold400, marginBottom: 10 }}>{t.contact}</div>
@@ -2729,7 +2857,7 @@ function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderStatus, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, coupons, setCoupons, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderStatus, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, coupons, setCoupons, posts, setPosts, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -2739,6 +2867,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderSta
     { id: "products", label: t.products, icon: Gem },
     { id: "offers", label: t.specialOffers, icon: Gift },
     { id: "coupons", label: lang === "en" ? "Coupons" : "कुपन", icon: Tag },
+    { id: "blog", label: lang === "en" ? "Blog" : "ब्लग", icon: Award },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
     { id: "reviews", label: lang === "en" ? "Reviews" : "समीक्षा", icon: Star },
@@ -2775,6 +2904,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderSta
         {tab === "products" && <AdminProducts t={t} lang={lang} dark={dark} products={products} setProducts={setProducts} />}
         {tab === "offers" && <AdminOffers t={t} lang={lang} dark={dark} offers={offers} setOffers={setOffers} products={products} />}
         {tab === "coupons" && <AdminCoupons t={t} lang={lang} dark={dark} coupons={coupons} setCoupons={setCoupons} />}
+        {tab === "blog" && <AdminPosts t={t} lang={lang} dark={dark} posts={posts} setPosts={setPosts} />}
         {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} updateOrderStatus={updateOrderStatus} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
         {tab === "reviews" && <AdminReviews t={t} lang={lang} dark={dark} reviews={reviews} products={products} deleteReview={deleteReview} />}
@@ -3268,6 +3398,136 @@ function AdminCoupons({ t, lang, dark, coupons, setCoupons }) {
               </button>
               <button className="ss-btn" onClick={() => editCoupon(c)} style={{ background: "none", color: C.wine700 }}><Edit2 size={15} /></button>
               <button className="ss-btn" onClick={() => deleteCoupon(c.id)} style={{ background: "none", color: "#D14343" }}><Trash2 size={15} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function emptyPostDraft() {
+  return { titleEn: "", titleNp: "", category: "", excerpt: "", contentEn: "", contentNp: "", image: null, published: true };
+}
+
+function AdminPosts({ t, lang, dark, posts, setPosts }) {
+  const [draft, setDraft] = useState(emptyPostDraft());
+  const [editingId, setEditingId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImageFile(file, 900);
+      setDraft((d) => ({ ...d, image: dataUrl }));
+    } catch (err) { /* ignore */ }
+    setUploading(false);
+  }
+
+  function resetForm() { setDraft(emptyPostDraft()); setEditingId(null); if (fileRef.current) fileRef.current.value = ""; }
+
+  function savePost() {
+    if (!draft.titleEn || !draft.contentEn) return;
+    if (editingId) {
+      setPosts(posts.map((p) => (p.id === editingId ? { ...p, ...draft } : p)));
+    } else {
+      const newPost = { id: genId("post"), ...draft, date: new Date().toISOString() };
+      setPosts([newPost, ...posts]);
+    }
+    resetForm();
+  }
+  function editPost(p) {
+    setDraft({ titleEn: p.titleEn, titleNp: p.titleNp || "", category: p.category || "", excerpt: p.excerpt || "", contentEn: p.contentEn || "", contentNp: p.contentNp || "", image: p.image || null, published: !!p.published });
+    setEditingId(p.id);
+  }
+  function deletePost(id) {
+    setPosts(posts.filter((p) => p.id !== id));
+    if (editingId === id) resetForm();
+  }
+  function togglePublished(p) {
+    setPosts(posts.map((x) => (x.id === p.id ? { ...x, published: !x.published } : x)));
+  }
+
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Blog" : "ब्लग"}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>
+        {lang === "en" ? "Share styling tips, festival guides, and shop stories. Published posts appear on your homepage and Blog page." : "स्टाइलिङ सुझाव, चाडपर्व गाइड र पसलका कथाहरू सेयर गर्नुहोस्। प्रकाशित पोस्टहरू गृहपृष्ठ र ब्लग पृष्ठमा देखिन्छन्।"}
+      </p>
+
+      <div style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+        <div className="ss-caption" style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>{editingId ? t.edit : (lang === "en" ? "New Post" : "नयाँ पोस्ट")}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 16 }} className="ss-product-form">
+          <div>
+            <div onClick={() => fileRef.current?.click()} style={{
+              width: 130, height: 130, borderRadius: 12, border: `2px dashed ${C.gold400}77`, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", overflow: "hidden", background: dark ? C.plum950 : C.ivory100, flexDirection: "column", gap: 4,
+            }}>
+              {uploading ? <RefreshCw size={20} className="ss-spin" /> : draft.image ? <img src={draft.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (
+                <><Upload size={20} color={C.ink600} /><span style={{ fontSize: 10, color: C.ink600, textAlign: "center", padding: "0 6px" }}>{lang === "en" ? "Cover Photo" : "कभर फोटो"}</span></>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+            {draft.image && <button className="ss-btn ss-caption" onClick={() => setDraft((d) => ({ ...d, image: null }))} style={{ marginTop: 6, fontSize: 10, background: "none", color: C.rose500 }}>{t.remove}</button>}
+          </div>
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <FormRow label={lang === "en" ? "Title (English)" : "शीर्षक (अंग्रेजी)"}>
+                <input className="ss-focus" style={inputStyle(dark)} value={draft.titleEn} onChange={(e) => setDraft({ ...draft, titleEn: e.target.value })} />
+              </FormRow>
+              <FormRow label={lang === "en" ? "Title (Nepali)" : "शीर्षक (नेपाली)"}>
+                <input className="ss-focus" style={inputStyle(dark)} value={draft.titleNp} onChange={(e) => setDraft({ ...draft, titleNp: e.target.value })} />
+              </FormRow>
+            </div>
+            <FormRow label={lang === "en" ? "Category (optional, e.g. Styling Tips)" : "श्रेणी (वैकल्पिक)"}>
+              <input className="ss-focus" style={inputStyle(dark)} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
+            </FormRow>
+            <FormRow label={lang === "en" ? "Short Excerpt (shown in previews)" : "छोटो विवरण"}>
+              <input className="ss-focus" style={inputStyle(dark)} value={draft.excerpt} onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })} />
+            </FormRow>
+          </div>
+        </div>
+        <FormRow label={lang === "en" ? "Full Content (English)" : "पूरा सामग्री (अंग्रेजी)"}>
+          <textarea className="ss-focus" rows={6} style={{ ...inputStyle(dark), resize: "vertical" }} value={draft.contentEn} onChange={(e) => setDraft({ ...draft, contentEn: e.target.value })} />
+        </FormRow>
+        <FormRow label={lang === "en" ? "Full Content (Nepali, optional)" : "पूरा सामग्री (नेपाली, वैकल्पिक)"}>
+          <textarea className="ss-focus" rows={6} style={{ ...inputStyle(dark), resize: "vertical" }} value={draft.contentNp} onChange={(e) => setDraft({ ...draft, contentNp: e.target.value })} />
+        </FormRow>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 13 }}>
+          <input type="checkbox" checked={draft.published} onChange={(e) => setDraft({ ...draft, published: e.target.checked })} /> {lang === "en" ? "Published (visible to customers)" : "प्रकाशित (ग्राहकलाई देखिने)"}
+        </label>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="ss-btn ss-caption" onClick={savePost} style={{ background: C.wine700, color: "#fff", padding: "10px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 }}>{t.save}</button>
+          {editingId && <button className="ss-btn ss-caption" onClick={resetForm} style={{ background: "none", border: `1px solid ${C.gold400}55`, padding: "10px 20px", borderRadius: 10, fontSize: 13, color: dark ? C.ivory50 : C.ink900 }}>{t.cancel}</button>}
+        </div>
+      </div>
+
+      {posts.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: C.ink600, border: `1px dashed ${C.gold400}44`, borderRadius: 14 }}>
+          {lang === "en" ? "No posts yet. Write your first one above." : "अहिलेसम्म कुनै पोस्ट छैन। माथि पहिलो लेख्नुहोस्।"}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {posts.map((p) => (
+            <div key={p.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${C.wine700}, ${C.plum950})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {p.image ? <img src={p.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>📖</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{lang === "en" ? p.titleEn : (p.titleNp || p.titleEn)}</div>
+                <div style={{ fontSize: 11.5, color: C.ink600 }}>{new Date(p.date).toLocaleDateString()}{p.category ? ` · ${p.category}` : ""}</div>
+              </div>
+              <button className="ss-btn ss-caption" onClick={() => togglePublished(p)} style={{
+                background: p.published ? "#2E9E5B22" : "#99999922", color: p.published ? "#2E9E5B" : C.ink600,
+                padding: "6px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
+              }}>
+                {p.published ? (lang === "en" ? "Published" : "प्रकाशित") : (lang === "en" ? "Draft" : "मस्यौदा")}
+              </button>
+              <button className="ss-btn" onClick={() => editPost(p)} style={{ background: "none", color: C.wine700 }}><Edit2 size={15} /></button>
+              <button className="ss-btn" onClick={() => deletePost(p.id)} style={{ background: "none", color: "#D14343" }}><Trash2 size={15} /></button>
             </div>
           ))}
         </div>
