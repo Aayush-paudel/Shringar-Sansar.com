@@ -474,6 +474,7 @@ function ShringarSansarApp() {
   const [reviews, setReviews] = useState([]);
   const [coupons, setCouponsState] = useState([]);
   const [posts, setPostsState] = useState([]);
+  const [deliverySettings, setDeliverySettingsState] = useState({ options: [], freeThreshold: 0 });
   const [wishlist, setWishlist] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [cloudReady, setCloudReady] = useState(false);
@@ -525,6 +526,7 @@ function ShringarSansarApp() {
         setReviews(Array.isArray(cloud.reviews) ? cloud.reviews : []);
         setCouponsState(Array.isArray(cloud.coupons) ? cloud.coupons : []);
         setPostsState(Array.isArray(cloud.posts) ? cloud.posts : []);
+        setDeliverySettingsState(cloud.deliverySettings && typeof cloud.deliverySettings === "object" ? cloud.deliverySettings : { options: [], freeThreshold: 0 });
         setOrders(Array.isArray(cloud.orders) ? cloud.orders : []);
         setCloudReady(true);
       } else {
@@ -539,7 +541,7 @@ function ShringarSansarApp() {
         const storedOrdersFallback = await storageGet("orders", false, []);
         setOrders(storedOrdersFallback || []);
         if (!cloud) {
-          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [], coupons: [], posts: [] });
+          const seeded = await cloudSave({ products: SEED_PRODUCTS, loginHistory: [], offers: [], reviews: [], orders: storedOrdersFallback || [], coupons: [], posts: [], deliverySettings: { options: [], freeThreshold: 0 } });
           if (seeded) setCloudReady(true);
         }
       }
@@ -579,56 +581,61 @@ function ShringarSansarApp() {
   const persistProducts = useCallback(async (next) => {
     setProducts(next);
     await storageSet("products", next, true);
-    await cloudSave({ products: next, loginHistory, offers, reviews, orders, coupons, posts });
-  }, [loginHistory, offers, reviews, orders, coupons, posts]);
+    await cloudSave({ products: next, loginHistory, offers, reviews, orders, coupons, posts, deliverySettings });
+  }, [loginHistory, offers, reviews, orders, coupons, posts, deliverySettings]);
 
   const persistOffers = useCallback(async (next) => {
     setOffers(next);
-    await cloudSave({ products, loginHistory, offers: next, reviews, orders, coupons, posts });
-  }, [products, loginHistory, reviews, orders, coupons, posts]);
+    await cloudSave({ products, loginHistory, offers: next, reviews, orders, coupons, posts, deliverySettings });
+  }, [products, loginHistory, reviews, orders, coupons, posts, deliverySettings]);
 
   const recordLogin = useCallback(async (email) => {
     setLoginHistory((prev) => {
       const entry = { email, date: new Date().toISOString() };
       const next = [entry, ...prev].slice(0, 500);
-      cloudSave({ products, loginHistory: next, offers, reviews, orders, coupons, posts });
+      cloudSave({ products, loginHistory: next, offers, reviews, orders, coupons, posts, deliverySettings });
       return next;
     });
-  }, [products, offers, reviews, orders, coupons, posts]);
+  }, [products, offers, reviews, orders, coupons, posts, deliverySettings]);
 
   const addReview = useCallback((review) => {
     setReviews((prev) => {
       const next = [review, ...prev];
-      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts, deliverySettings });
       return next;
     });
-  }, [products, loginHistory, offers, orders, coupons, posts]);
+  }, [products, loginHistory, offers, orders, coupons, posts, deliverySettings]);
 
   const deleteReview = useCallback((reviewId) => {
     setReviews((prev) => {
       const next = prev.filter((r) => r.id !== reviewId);
-      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts });
+      cloudSave({ products, loginHistory, offers, reviews: next, orders, coupons, posts, deliverySettings });
       return next;
     });
-  }, [products, loginHistory, offers, orders, coupons, posts]);
+  }, [products, loginHistory, offers, orders, coupons, posts, deliverySettings]);
 
   // Every order create/update/cancel goes through this so orders are
   // shared across every device — the admin panel and each customer's
   // own "My Orders" page always reflect the same real, current data.
   const persistOrders = useCallback(async (next) => {
     setOrders(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders: next, coupons, posts });
-  }, [products, loginHistory, offers, reviews, coupons, posts]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders: next, coupons, posts, deliverySettings });
+  }, [products, loginHistory, offers, reviews, coupons, posts, deliverySettings]);
 
   const persistCoupons = useCallback(async (next) => {
     setCouponsState(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons: next, posts });
-  }, [products, loginHistory, offers, reviews, orders, posts]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons: next, posts, deliverySettings });
+  }, [products, loginHistory, offers, reviews, orders, posts, deliverySettings]);
 
   const persistPosts = useCallback(async (next) => {
     setPostsState(next);
-    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons, posts: next });
-  }, [products, loginHistory, offers, reviews, orders, coupons]);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons, posts: next, deliverySettings });
+  }, [products, loginHistory, offers, reviews, orders, coupons, deliverySettings]);
+
+  const persistDeliverySettings = useCallback(async (next) => {
+    setDeliverySettingsState(next);
+    await cloudSave({ products, loginHistory, offers, reviews, orders, coupons, posts, deliverySettings: next });
+  }, [products, loginHistory, offers, reviews, orders, coupons, posts]);
 
   // Adjusts real product stock when an order is placed (decrement) or
   // cancelled (restock). Combo/offer items ("combo:offerId") don't map to
@@ -672,8 +679,8 @@ function ShringarSansarApp() {
     setOrders(nextOrders);
     setCouponsState(nextCoupons);
     storageSet("products", nextProducts, true);
-    cloudSave({ products: nextProducts, loginHistory, offers, reviews, orders: nextOrders, coupons: nextCoupons, posts });
-  }, [products, orders, coupons, offers, loginHistory, reviews, posts]);
+    cloudSave({ products: nextProducts, loginHistory, offers, reviews, orders: nextOrders, coupons: nextCoupons, posts, deliverySettings });
+  }, [products, orders, coupons, offers, loginHistory, reviews, posts, deliverySettings]);
 
   const updateOrderStatus = useCallback((orderId, newStatus) => {
     const target = orders.find((o) => o.id === orderId);
@@ -683,6 +690,13 @@ function ShringarSansarApp() {
     }
     persistOrders(orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
   }, [orders, persistOrders, adjustStockForItems]);
+
+  // Lets admin attach real courier/tracking details they got from the
+  // delivery partner when they actually booked the shipment — this is
+  // what powers the customer's "Track Package" button.
+  const updateOrderShipping = useCallback((orderId, shipping) => {
+    persistOrders(orders.map((o) => (o.id === orderId ? { ...o, ...shipping } : o)));
+  }, [orders, persistOrders]);
 
   function toggleWishlist(productId) {
     setWishlist((prev) => {
@@ -847,6 +861,8 @@ function ShringarSansarApp() {
           reviews={reviews} deleteReview={deleteReview}
           coupons={coupons} setCoupons={persistCoupons}
           posts={posts} setPosts={persistPosts}
+          deliverySettings={deliverySettings} setDeliverySettings={persistDeliverySettings}
+          updateOrderShipping={updateOrderShipping}
           onExit={() => setAdminMode(false)}
         />
       ) : (
@@ -892,7 +908,7 @@ function ShringarSansarApp() {
             {route.page === "checkout" && (
               <CheckoutFlow
                 t={t} lang={lang} dark={dark} cartDetailed={cartDetailed} subtotal={cartSubtotal}
-                auth={auth} setLoginOpen={setLoginOpen} go={go} coupons={coupons}
+                auth={auth} setLoginOpen={setLoginOpen} go={go} coupons={coupons} deliverySettings={deliverySettings}
                 onOrderPlaced={(order, usedCoupon) => {
                   placeOrder(order, usedCoupon);
                   setCart([]);
@@ -2128,7 +2144,7 @@ function Stepper({ steps, current, dark }) {
   );
 }
 
-function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpen, go, onOrderPlaced, coupons }) {
+function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpen, go, onOrderPlaced, coupons, deliverySettings }) {
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState({ fullName: "", phone: "", province: "Bagmati", district: "", municipality: "", ward: "", landmark: "" });
   const [addressErrors, setAddressErrors] = useState({});
@@ -2139,9 +2155,25 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
+  const [selectedOptionId, setSelectedOptionId] = useState(null);
 
   const isValley = address.province === "Bagmati";
-  const deliveryFee = cartDetailed.length ? (isValley ? 100 : 250) : 0;
+  const freeThreshold = deliverySettings?.freeThreshold || 0;
+  const freeDeliveryActive = freeThreshold > 0 && subtotal >= freeThreshold;
+  const zoneOptions = (deliverySettings?.options || []).filter((o) => o.zone === "all" || (isValley && o.zone === "valley") || (!isValley && o.zone === "outside"));
+  const selectedOption = zoneOptions.find((o) => o.id === selectedOptionId) || zoneOptions[0] || null;
+
+  useEffect(() => {
+    // Reset the chosen delivery option whenever the zone (province) changes,
+    // since options are zone-specific and a stale pick could be invalid.
+    setSelectedOptionId(zoneOptions[0]?.id || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isValley]);
+
+  const deliveryFee = !cartDetailed.length ? 0
+    : freeDeliveryActive ? 0
+    : selectedOption ? selectedOption.price
+    : (isValley ? 100 : 250); // fallback flat rate if admin hasn't set up options yet
   const codHandling = payment === "cod" && !isValley ? 150 : 0;
   const couponDiscount = appliedCoupon
     ? (appliedCoupon.type === "percent" ? Math.round(subtotal * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, subtotal))
@@ -2239,6 +2271,8 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
         address, payment, paymentLabel: payment === "esewa" ? t.esewa : payment === "bank" ? t.bank : t.cod,
         paymentProof: payment === "bank" ? proofFile : null,
         couponCode: appliedCoupon?.code || null, couponDiscount,
+        deliveryOption: freeDeliveryActive ? null : (selectedOption ? { nameEn: selectedOption.nameEn, nameNp: selectedOption.nameNp, courier: selectedOption.courier, etaEn: selectedOption.etaEn, etaNp: selectedOption.etaNp } : null),
+        courier: null, trackingNumber: null, trackingUrl: null,
         subtotal, deliveryFee, codHandling, total,
         status: "pending",
       };
@@ -2323,9 +2357,42 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
             {addressErrors.municipality && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.municipality}</div>}
           </FormRow>
           <FormRow label={t.landmark}><input className="ss-focus" style={inputStyle(dark)} value={address.landmark} onChange={(e) => setAddress({ ...address, landmark: e.target.value })} /></FormRow>
-          <div style={{ marginTop: 6, fontSize: 12.5, color: isValley ? "#2E9E5B" : C.ink600, display: "flex", alignItems: "center", gap: 6 }}>
-            <Clock size={13} /> {isValley ? t.fasterDelivery : t.standardDelivery}
-          </div>
+
+          {freeDeliveryActive ? (
+            <div style={{ marginTop: 10, fontSize: 13, color: "#2E9E5B", display: "flex", alignItems: "center", gap: 6, background: "#2E9E5B18", padding: "10px 12px", borderRadius: 10 }}>
+              <CircleCheck size={15} /> {t.freeDeliveryUnlocked}
+            </div>
+          ) : zoneOptions.length > 0 ? (
+            <div style={{ marginTop: 14 }}>
+              <label className="ss-caption" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 8 }}>{t.chooseDeliveryOption}</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {zoneOptions.map((o) => {
+                  const active = selectedOption?.id === o.id;
+                  return (
+                    <button key={o.id} type="button" className="ss-btn" onClick={() => setSelectedOptionId(o.id)} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 14px", borderRadius: 10,
+                      border: `1.5px solid ${active ? C.wine700 : C.gold400 + "44"}`, background: active ? C.wine700 + "14" : (dark ? C.plum900 : "#fff"), textAlign: "left",
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{lang === "en" ? o.nameEn : (o.nameNp || o.nameEn)}</div>
+                        <div style={{ fontSize: 11.5, color: C.ink600, display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}><Clock size={11} /> {lang === "en" ? o.etaEn : (o.etaNp || o.etaEn)}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtNPR(o.price)}</span>
+                        <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? C.wine700 : C.gold400 + "77"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {active && <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.wine700 }} />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: isValley ? "#2E9E5B" : C.ink600, display: "flex", alignItems: "center", gap: 6 }}>
+              <Clock size={13} /> {isValley ? t.fasterDelivery : t.standardDelivery}
+            </div>
+          )}
         </div>
       )}
 
@@ -2361,6 +2428,7 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
               </div>
             )}
             <PaymentOption id="cod" selected={payment} onSelect={setPayment} icon={Package} label={t.cod} dark={dark} />
+            <div style={{ marginTop: -4, marginBottom: 2 }}><Badge tone="gold"><CircleCheck size={11} /> {t.codAvailableBadge}</Badge></div>
             {payment === "cod" && !isValley && (
               <div style={{ fontSize: 12.5, color: C.rose500, display: "flex", gap: 6, alignItems: "center" }}><AlertCircle size={13} /> {t.codOutside} (+{fmtNPR(150)})</div>
             )}
@@ -2508,6 +2576,25 @@ function OrdersPage({ t, lang, dark, orders, updateOrderStatus, auth, go, showTo
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 14, marginTop: 8, borderTop: `1px solid ${C.gold400}22`, paddingTop: 8 }}>
                   <span>{t.total}</span><span>{fmtNPR(o.total)}</span>
                 </div>
+
+                {(o.status === "shipped" || o.status === "delivered") && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.gold400}22` }}>
+                    {o.trackingUrl ? (
+                      <a href={o.trackingUrl} target="_blank" rel="noopener noreferrer" className="ss-btn ss-caption"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.wine700, color: "#fff", padding: "8px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
+                        <Truck size={13} /> {t.trackPackage}
+                      </a>
+                    ) : o.trackingNumber ? (
+                      <div style={{ fontSize: 12.5, color: C.ink600, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Truck size={13} /> {o.courier ? `${o.courier} — ` : ""}{t.trackingNumber}: <strong>{o.trackingNumber}</strong>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: C.ink600, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Clock size={12} /> {t.notShippedYet}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {isConfirming ? (
                   <div className="ss-fade-in" style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.gold400}22` }}>
@@ -2857,7 +2944,7 @@ function AdminGate({ t, dark, onSuccess, onCancel, lang }) {
 /* ============================================================
    ADMIN APP
    ============================================================ */
-function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderStatus, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, coupons, setCoupons, posts, setPosts, onExit }) {
+function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderStatus, updateOrderShipping, visitorCount, loginHistory, offers, setOffers, reviews, deleteReview, coupons, setCoupons, posts, setPosts, deliverySettings, setDeliverySettings, onExit }) {
   const [tab, setTab] = useState("overview");
   const bg = dark ? C.plum950 : C.ivory50;
   const fg = dark ? C.ivory100 : C.ink900;
@@ -2868,6 +2955,7 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderSta
     { id: "offers", label: t.specialOffers, icon: Gift },
     { id: "coupons", label: lang === "en" ? "Coupons" : "कुपन", icon: Tag },
     { id: "blog", label: lang === "en" ? "Blog" : "ब्लग", icon: Award },
+    { id: "delivery", label: t.manageDelivery, icon: Truck },
     { id: "orders", label: t.orders, icon: Package },
     { id: "customers", label: t.customers, icon: Users },
     { id: "reviews", label: lang === "en" ? "Reviews" : "समीक्षा", icon: Star },
@@ -2905,7 +2993,8 @@ function AdminApp({ t, lang, dark, products, setProducts, orders, updateOrderSta
         {tab === "offers" && <AdminOffers t={t} lang={lang} dark={dark} offers={offers} setOffers={setOffers} products={products} />}
         {tab === "coupons" && <AdminCoupons t={t} lang={lang} dark={dark} coupons={coupons} setCoupons={setCoupons} />}
         {tab === "blog" && <AdminPosts t={t} lang={lang} dark={dark} posts={posts} setPosts={setPosts} />}
-        {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} updateOrderStatus={updateOrderStatus} />}
+        {tab === "delivery" && <AdminDelivery t={t} lang={lang} dark={dark} deliverySettings={deliverySettings} setDeliverySettings={setDeliverySettings} />}
+        {tab === "orders" && <AdminOrders t={t} lang={lang} dark={dark} orders={orders} updateOrderStatus={updateOrderStatus} updateOrderShipping={updateOrderShipping} />}
         {tab === "customers" && <AdminCustomers t={t} lang={lang} dark={dark} orders={orders} />}
         {tab === "reviews" && <AdminReviews t={t} lang={lang} dark={dark} reviews={reviews} products={products} deleteReview={deleteReview} />}
         {tab === "logins" && <AdminLoginHistory t={t} lang={lang} dark={dark} loginHistory={loginHistory} />}
@@ -3536,9 +3625,125 @@ function AdminPosts({ t, lang, dark, posts, setPosts }) {
   );
 }
 
-function AdminOrders({ t, lang, dark, orders, updateOrderStatus }) {
+function emptyDeliveryOptionDraft() {
+  return { nameEn: "", nameNp: "", courier: "", etaEn: "", etaNp: "", price: "", zone: "all" };
+}
+
+function AdminDelivery({ t, lang, dark, deliverySettings, setDeliverySettings }) {
+  const options = deliverySettings?.options || [];
+  const [draft, setDraft] = useState(emptyDeliveryOptionDraft());
+  const [editingId, setEditingId] = useState(null);
+  const [thresholdInput, setThresholdInput] = useState(String(deliverySettings?.freeThreshold || 0));
+
+  function resetForm() { setDraft(emptyDeliveryOptionDraft()); setEditingId(null); }
+
+  function saveOption() {
+    if (!draft.nameEn || !draft.etaEn || draft.price === "") return;
+    const value = { ...draft, price: Number(draft.price) };
+    if (editingId) {
+      setDeliverySettings({ ...deliverySettings, options: options.map((o) => (o.id === editingId ? { ...o, ...value } : o)) });
+    } else {
+      setDeliverySettings({ ...deliverySettings, options: [{ id: genId("delivery"), ...value }, ...options] });
+    }
+    resetForm();
+  }
+  function editOption(o) {
+    setDraft({ nameEn: o.nameEn, nameNp: o.nameNp || "", courier: o.courier || "", etaEn: o.etaEn, etaNp: o.etaNp || "", price: String(o.price), zone: o.zone });
+    setEditingId(o.id);
+  }
+  function deleteOption(id) {
+    setDeliverySettings({ ...deliverySettings, options: options.filter((o) => o.id !== id) });
+    if (editingId === id) resetForm();
+  }
+  function saveThreshold() {
+    setDeliverySettings({ ...deliverySettings, freeThreshold: Number(thresholdInput) || 0 });
+  }
+
+  const zoneLabel = { all: t.zoneAll, valley: t.zoneValley, outside: t.zoneOutside };
+
+  return (
+    <div>
+      <h2 className="ss-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{t.manageDelivery}</h2>
+      <p className="ss-caption" style={{ fontSize: 12, color: C.ink600, marginBottom: 18 }}>{t.deliveryOptionsIntro}</p>
+
+      <div style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 18, marginBottom: 20 }}>
+        <FormRow label={t.freeDeliveryThreshold}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="number" className="ss-focus" style={inputStyle(dark)} value={thresholdInput} onChange={(e) => setThresholdInput(e.target.value)} />
+            <button className="ss-btn ss-caption" onClick={saveThreshold} style={{ background: C.wine700, color: "#fff", padding: "0 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, flexShrink: 0 }}>{t.save}</button>
+          </div>
+        </FormRow>
+      </div>
+
+      <div style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+        <div className="ss-caption" style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>{editingId ? t.edit : t.addDeliveryOption}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+          <FormRow label={t.optionNameLabel}><input className="ss-focus" style={inputStyle(dark)} value={draft.nameEn} onChange={(e) => setDraft({ ...draft, nameEn: e.target.value })} /></FormRow>
+          <FormRow label={lang === "en" ? "Option name (Nepali, optional)" : "विकल्पको नाम (नेपाली)"}><input className="ss-focus" style={inputStyle(dark)} value={draft.nameNp} onChange={(e) => setDraft({ ...draft, nameNp: e.target.value })} /></FormRow>
+          <FormRow label={t.courier}><input className="ss-focus" style={inputStyle(dark)} placeholder="e.g. Pathao, Nepal Post" value={draft.courier} onChange={(e) => setDraft({ ...draft, courier: e.target.value })} /></FormRow>
+          <FormRow label={t.etaLabel}><input className="ss-focus" style={inputStyle(dark)} value={draft.etaEn} onChange={(e) => setDraft({ ...draft, etaEn: e.target.value })} /></FormRow>
+          <FormRow label={lang === "en" ? "Estimated time (Nepali, optional)" : "अनुमानित समय (नेपाली)"}><input className="ss-focus" style={inputStyle(dark)} value={draft.etaNp} onChange={(e) => setDraft({ ...draft, etaNp: e.target.value })} /></FormRow>
+          <FormRow label={`${t.couponValue} (NPR)`}><input type="number" className="ss-focus" style={inputStyle(dark)} value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></FormRow>
+          <FormRow label={t.zoneLabel}>
+            <select className="ss-focus" style={inputStyle(dark)} value={draft.zone} onChange={(e) => setDraft({ ...draft, zone: e.target.value })}>
+              <option value="all">{t.zoneAll}</option>
+              <option value="valley">{t.zoneValley}</option>
+              <option value="outside">{t.zoneOutside}</option>
+            </select>
+          </FormRow>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="ss-btn ss-caption" onClick={saveOption} style={{ background: C.wine700, color: "#fff", padding: "10px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 }}>{t.save}</button>
+          {editingId && <button className="ss-btn ss-caption" onClick={resetForm} style={{ background: "none", border: `1px solid ${C.gold400}55`, padding: "10px 20px", borderRadius: 10, fontSize: 13, color: dark ? C.ivory50 : C.ink900 }}>{t.cancel}</button>}
+        </div>
+      </div>
+
+      {options.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: C.ink600, border: `1px dashed ${C.gold400}44`, borderRadius: 14 }}>{t.noDeliveryOptionsYet}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {options.map((o) => (
+            <div key={o.id} style={{ background: dark ? C.plum900 : "#fff", border: `1px solid ${C.gold400}33`, borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <Truck size={20} color={C.wine700} />
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{o.nameEn}{o.courier ? ` — ${o.courier}` : ""}</div>
+                <div style={{ fontSize: 11.5, color: C.ink600 }}>{o.etaEn} · {fmtNPR(o.price)} · {zoneLabel[o.zone]}</div>
+              </div>
+              <button className="ss-btn" onClick={() => editOption(o)} style={{ background: "none", color: C.wine700 }}><Edit2 size={15} /></button>
+              <button className="ss-btn" onClick={() => deleteOption(o.id)} style={{ background: "none", color: "#D14343" }}><Trash2 size={15} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminOrders({ t, lang, dark, orders, updateOrderStatus, updateOrderShipping }) {
   const [expanded, setExpanded] = useState({});
   const [zoomImage, setZoomImage] = useState(null);
+  const [shippingDrafts, setShippingDrafts] = useState({});
+
+  function getShippingDraft(o) {
+    return shippingDrafts[o.id] || { courier: o.courier || "", trackingNumber: o.trackingNumber || "", trackingUrl: o.trackingUrl || "" };
+  }
+  function setShippingField(orderId, field, value) {
+    setShippingDrafts((prev) => ({ ...prev, [orderId]: { ...(prev[orderId] || getShippingDraft(orders.find((o) => o.id === orderId))), [field]: value } }));
+  }
+  function saveShipping(o) {
+    updateOrderShipping(o.id, getShippingDraft(o));
+  }
+  function notifyCustomer(o) {
+    const draft = getShippingDraft(o);
+    const phone = "977" + o.address.phone.replace(/\D/g, "");
+    const lines = lang === "en"
+      ? [`Hi ${o.address.fullName}, your Shringar Sansar order ${o.id} is on its way!`]
+      : [`नमस्ते ${o.address.fullName}, तपाईंको श्रृंगार संसार अर्डर ${o.id} पठाइएको छ!`];
+    if (draft.courier) lines.push(`${t.courier}: ${draft.courier}`);
+    if (draft.trackingNumber) lines.push(`${t.trackingNumber}: ${draft.trackingNumber}`);
+    if (draft.trackingUrl) lines.push(draft.trackingUrl);
+    window.open(whatsappLink(lines.join("\n")), "_blank", "noopener,noreferrer");
+  }
 
   function updateStatus(id, status) {
     updateOrderStatus(id, status);
@@ -3624,6 +3829,27 @@ function AdminOrders({ t, lang, dark, orders, updateOrderStatus }) {
                             </div>
                           )
                         )}
+
+                        {o.deliveryOption && (
+                          <div style={{ marginTop: 12, fontSize: 12.5, color: C.ink600 }}>
+                            <Truck size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                            {lang === "en" ? o.deliveryOption.nameEn : (o.deliveryOption.nameNp || o.deliveryOption.nameEn)}
+                            {o.deliveryOption.courier ? ` — ${o.deliveryOption.courier}` : ""}
+                          </div>
+                        )}
+
+                        <div className="ss-caption" style={{ fontSize: 11, fontWeight: 700, color: C.gold400, margin: "14px 0 6px", textTransform: "uppercase" }}>{t.shippingDetails}</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <input className="ss-focus" style={{ ...inputStyle(dark), fontSize: 12.5 }} placeholder={t.courier} value={getShippingDraft(o).courier} onChange={(e) => setShippingField(o.id, "courier", e.target.value)} />
+                          <input className="ss-focus" style={{ ...inputStyle(dark), fontSize: 12.5 }} placeholder={t.trackingNumber} value={getShippingDraft(o).trackingNumber} onChange={(e) => setShippingField(o.id, "trackingNumber", e.target.value)} />
+                          <input className="ss-focus" style={{ ...inputStyle(dark), fontSize: 12.5 }} placeholder={`${t.trackingUrl} (https://...)`} value={getShippingDraft(o).trackingUrl} onChange={(e) => setShippingField(o.id, "trackingUrl", e.target.value)} />
+                          <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                            <button className="ss-btn ss-caption" onClick={() => saveShipping(o)} style={{ background: C.wine700, color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600 }}>{t.saveShipping}</button>
+                            <button className="ss-btn ss-caption" onClick={() => notifyCustomer(o)} style={{ background: "#25D366", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                              <WhatsappIcon size={13} color="#fff" /> {t.notifyCustomer}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
