@@ -287,6 +287,25 @@ async function cloudSave(record) {
   }
 }
 
+// Sends an SMS via our own /api/send-sms serverless function, which keeps
+// the real Sparrow SMS token safely on the server side. Note: this only
+// works once deployed on Vercel (or run via `vercel dev`) — a plain
+// `npm run dev` has no serverless functions available.
+async function sendSmsViaApi(to, text) {
+  try {
+    const res = await fetch("/api/send-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, text }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success) return { success: true };
+    return { success: false, message: data?.message || "Could not send the SMS." };
+  } catch (e) {
+    return { success: false, message: "Could not reach the SMS service." };
+  }
+}
+
 function resizeImageFile(file, maxDim = 480) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2156,6 +2175,56 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
   const [selectedOptionId, setSelectedOptionId] = useState(null);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneSentCode, setPhoneSentCode] = useState(null);
+  const [phoneCodeInput, setPhoneCodeInput] = useState("");
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [phoneAttempts, setPhoneAttempts] = useState(0);
+
+  async function sendPhoneCode() {
+    setPhoneError("");
+    if (!PHONE_REGEX.test(address.phone.trim())) {
+      setPhoneError(lang === "en" ? "Enter a valid 10-digit number first." : "पहिले मान्य १० अंकको नम्बर राख्नुहोस्।");
+      return;
+    }
+    setPhoneSending(true);
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    const text = lang === "en"
+      ? `Your Shringar Sansar delivery number verification code is ${code}. Do not share this code.`
+      : `तपाईंको श्रृंगार संसार डेलिभरी नम्बर प्रमाणीकरण कोड ${code} हो। यो कोड कसैलाई नदिनुहोस्।`;
+    const result = await sendSmsViaApi(address.phone.trim(), text);
+    setPhoneSending(false);
+    if (result.success) {
+      setPhoneSentCode(code);
+      setPhoneCodeSent(true);
+    } else {
+      setPhoneError(result.message || (lang === "en" ? "Couldn't send the code. Try again." : "कोड पठाउन सकिएन। फेरि प्रयास गर्नुहोस्।"));
+    }
+  }
+  function verifyPhoneCode() {
+    if (phoneCodeInput === phoneSentCode) {
+      setPhoneVerified(true);
+      setPhoneError("");
+    } else {
+      const next = phoneAttempts + 1;
+      setPhoneAttempts(next);
+      setPhoneError(lang === "en" ? "Incorrect code. Please try again." : "गलत कोड। फेरि प्रयास गर्नुहोस्।");
+    }
+  }
+  // If the customer edits the phone number after verifying it, the
+  // verification no longer applies to whatever number is there now.
+  function handlePhoneChange(value) {
+    setAddress({ ...address, phone: value.replace(/\D/g, "").slice(0, 10) });
+    if (phoneVerified || phoneCodeSent) {
+      setPhoneVerified(false);
+      setPhoneCodeSent(false);
+      setPhoneSentCode(null);
+      setPhoneCodeInput("");
+      setPhoneError("");
+    }
+  }
 
   const isValley = address.province === "Bagmati";
   const freeThreshold = deliverySettings?.freeThreshold || 0;
@@ -2248,6 +2317,8 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
       }
       if (!PHONE_REGEX.test(address.phone.trim())) {
         errs.phone = lang === "en" ? "Enter a valid 10-digit Nepali mobile number." : "मान्य १० अंकको नेपाली मोबाइल नम्बर राख्नुहोस्।";
+      } else if (!phoneVerified) {
+        errs.phone = lang === "en" ? "Please verify this number before continuing." : "अगाडि बढ्नु अघि यो नम्बर प्रमाणित गर्नुहोस्।";
       }
       if (!address.district) {
         errs.district = lang === "en" ? "Please select your district." : "कृपया आफ्नो जिल्ला छान्नुहोस्।";
@@ -2315,8 +2386,30 @@ function CheckoutFlow({ t, lang, dark, cartDetailed, subtotal, auth, setLoginOpe
             {addressErrors.fullName && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.fullName}</div>}
           </FormRow>
           <FormRow label={t.phoneNumber}>
-            <input className="ss-focus" style={inputStyle(dark)} value={address.phone} maxLength={10} placeholder="98XXXXXXXX" onChange={(e) => setAddress({ ...address, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input className="ss-focus" style={{ ...inputStyle(dark), flex: 1 }} value={address.phone} maxLength={10} placeholder="98XXXXXXXX" disabled={phoneVerified} onChange={(e) => handlePhoneChange(e.target.value)} />
+              {phoneVerified ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#2E9E5B", fontSize: 12.5, fontWeight: 600, flexShrink: 0, padding: "0 6px" }}>
+                  <CircleCheck size={16} /> {lang === "en" ? "Verified" : "प्रमाणित"}
+                </span>
+              ) : !phoneCodeSent && (
+                <button type="button" className="ss-btn ss-caption" onClick={sendPhoneCode} disabled={phoneSending || !PHONE_REGEX.test(address.phone.trim())}
+                  style={{ background: C.wine700, color: "#fff", padding: "0 14px", borderRadius: 9, fontSize: 12, fontWeight: 600, flexShrink: 0, opacity: phoneSending || !PHONE_REGEX.test(address.phone.trim()) ? 0.5 : 1, display: "flex", alignItems: "center", gap: 5 }}>
+                  {phoneSending && <RefreshCw size={12} className="ss-spin" />} {lang === "en" ? "Verify" : "प्रमाणित गर्नुहोस्"}
+                </button>
+              )}
+            </div>
             {addressErrors.phone && <div style={fieldErrorStyle}><AlertCircle size={11} /> {addressErrors.phone}</div>}
+            {phoneCodeSent && !phoneVerified && (
+              <div className="ss-fade-in" style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                <input className="ss-focus" style={{ ...inputStyle(dark), letterSpacing: "0.3em", textAlign: "center" }} value={phoneCodeInput} maxLength={4}
+                  placeholder={lang === "en" ? "Enter SMS code" : "SMS कोड राख्नुहोस्"} onChange={(e) => setPhoneCodeInput(e.target.value.replace(/\D/g, ""))} />
+                <button type="button" className="ss-btn ss-caption" onClick={verifyPhoneCode} style={{ background: C.wine700, color: "#fff", padding: "0 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, flexShrink: 0 }}>
+                  {lang === "en" ? "Confirm" : "पुष्टि"}
+                </button>
+              </div>
+            )}
+            {phoneError && <div style={fieldErrorStyle}><AlertCircle size={11} /> {phoneError}</div>}
           </FormRow>
           <FormRow label={t.selectProvince}>
             <select className="ss-focus" style={inputStyle(dark)} value={address.province} onChange={(e) => setAddress({ ...address, province: e.target.value, district: "" })}>
