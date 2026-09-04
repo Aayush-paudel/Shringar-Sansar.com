@@ -797,7 +797,9 @@ function ShringarSansarApp() {
 
   const css = `
     ${FONT_IMPORT}
-    .ss-root { font-family: 'Mukta', sans-serif; background:${bg}; color:${fg}; min-height:100%; transition: background .3s, color .3s; }
+    .ss-root { font-family: 'Mukta', sans-serif; background:${bg}; color:${fg}; min-height:100%; transition: background .3s, color .3s; overflow-x: hidden; width: 100%; }
+    .ss-root img, .ss-root svg { max-width: 100%; }
+    .ss-root * { min-width: 0; }
     .ss-display { font-family: 'Cormorant Garamond', serif; }
     .ss-caption { font-family: 'Poppins', sans-serif; }
     .ss-btn { cursor:pointer; border:none; transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
@@ -846,8 +848,9 @@ function ShringarSansarApp() {
           position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 200,
           background: C.wine700, color: "#fff", padding: "10px 18px", borderRadius: 10, fontSize: 14,
           boxShadow: "0 10px 24px -8px rgba(0,0,0,.4)", display: "flex", alignItems: "center", gap: 8,
+          maxWidth: "calc(100vw - 32px)", boxSizing: "border-box",
         }} className="ss-fade-in ss-caption">
-          <Check size={16} /> {toast}
+          <Check size={16} style={{ flexShrink: 0 }} /> <span style={{ overflowWrap: "anywhere" }}>{toast}</span>
         </div>
       )}
 
@@ -866,7 +869,7 @@ function ShringarSansarApp() {
           <button className="ss-btn ss-caption" onClick={handleInstallClick} style={{ background: C.gold400, color: C.ink900, padding: "9px 16px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
             {lang === "en" ? "Install" : "इन्स्टल"}
           </button>
-          <button className="ss-btn" onClick={dismissInstallBanner} style={{ background: "none", color: C.ivory50, flexShrink: 0 }}><X size={16} /></button>
+          <button className="ss-btn" onClick={dismissInstallBanner} style={{ background: "none", color: C.ivory50, flexShrink: 0, padding: 8 }}><X size={16} /></button>
         </div>
       )}
 
@@ -1001,8 +1004,8 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
       position: "sticky", top: 0, zIndex: 100, background: dark ? C.plum950 + "F2" : C.ivory50 + "F2",
       backdropFilter: "blur(8px)", borderBottom: `1px solid ${C.gold400}33`,
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 16 }}>
-        <button className="ss-btn" onClick={() => go("home")} style={{ background: "none", display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="ss-header-row" style={{ maxWidth: 1200, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", rowGap: 8 }}>
+        <button className="ss-btn" onClick={() => go("home")} style={{ background: "none", display: "flex", alignItems: "center", gap: 10, padding: 6 }}>
           <div style={{
             width: 44, height: 44, borderRadius: "50%", background: C.plum950,
             display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px solid ${C.gold400}`, overflow: "hidden", flexShrink: 0,
@@ -1011,7 +1014,7 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           </div>
           <div style={{ textAlign: "left" }}>
             <div className="ss-display" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: dark ? C.ivory50 : C.wine700 }}>{t.heroTitle}</div>
-            <div className="ss-caption" style={{ fontSize: 9, letterSpacing: "0.14em", color: C.gold400, textTransform: "uppercase" }}>{t.tagline}</div>
+            <div className="ss-caption ss-tagline" style={{ fontSize: 9, letterSpacing: "0.14em", color: C.gold400, textTransform: "uppercase" }}>{t.tagline}</div>
           </div>
         </button>
 
@@ -1041,17 +1044,17 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
         </div>
 
         <button className="ss-btn" title={lang === "en" ? "नेपाली" : "English"} aria-label={lang === "en" ? "Switch to Nepali" : "Switch to English"} onClick={() => setLang(lang === "en" ? "np" : "en")}
-          style={{ background: "none", display: "flex", alignItems: "center", gap: 4, color: dark ? C.ivory50 : C.ink900, fontSize: 12 }} className="ss-caption">
+          style={{ background: "none", display: "flex", alignItems: "center", gap: 4, color: dark ? C.ivory50 : C.ink900, fontSize: 12, padding: 8, borderRadius: 8 }} className="ss-caption">
           <Globe size={17} /> <span style={{ fontWeight: 600 }}>{lang === "en" ? "EN" : "ने"}</span>
         </button>
 
-        <button className="ss-btn" onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} style={{ background: "none", color: dark ? C.gold300 : C.ink900 }}>
+        <button className="ss-btn" onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} style={{ background: "none", color: dark ? C.gold300 : C.ink900, padding: 8, borderRadius: 8 }}>
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <button className="ss-btn" onClick={() => auth.verified ? setAccountOpen((o) => !o) : onLoginClick()} title={t.login} aria-label={auth.verified ? "Account menu" : t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={() => auth.verified ? setAccountOpen((o) => !o) : onLoginClick()} title={t.login} aria-label={auth.verified ? "Account menu" : t.login} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative", padding: 8, borderRadius: 8 }}>
           <User size={19} />
-          {auth.verified && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "#2E9E5B", border: `1.5px solid ${dark ? C.plum950 : C.ivory50}` }} />}
+          {auth.verified && <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, borderRadius: "50%", background: "#2E9E5B", border: `1.5px solid ${dark ? C.plum950 : C.ivory50}` }} />}
         </button>
         {accountOpen && auth.verified && (
           <div className="ss-fade-in ss-caption" style={{
@@ -1067,27 +1070,27 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
           </div>
         )}
 
-        <button className="ss-btn" onClick={() => go("wishlist")} title={t.wishlist} aria-label={`${t.wishlist} (${wishlistCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={() => go("wishlist")} title={t.wishlist} aria-label={`${t.wishlist} (${wishlistCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative", padding: 8, borderRadius: 8 }}>
           <Heart size={19} />
           {wishlistCount > 0 && (
             <span style={{
-              position: "absolute", top: -6, right: -8, background: C.rose500, color: "#fff", fontSize: 10, fontWeight: 700,
+              position: "absolute", top: 2, right: 2, background: C.rose500, color: "#fff", fontSize: 10, fontWeight: 700,
               borderRadius: 999, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
             }}>{wishlistCount}</span>
           )}
         </button>
 
-        <button className="ss-btn" onClick={onCartClick} aria-label={`${t.cart} (${cartCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative" }}>
+        <button className="ss-btn" onClick={onCartClick} aria-label={`${t.cart} (${cartCount})`} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, position: "relative", padding: 8, borderRadius: 8 }}>
           <ShoppingBag size={20} />
           {cartCount > 0 && (
             <span style={{
-              position: "absolute", top: -6, right: -8, background: C.gold400, color: C.ink900, fontSize: 10, fontWeight: 700,
+              position: "absolute", top: 2, right: 2, background: C.gold400, color: C.ink900, fontSize: 10, fontWeight: 700,
               borderRadius: 999, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
             }}>{cartCount}</span>
           )}
         </button>
 
-        <button className="ss-btn" onClick={() => setMenuOpen((m) => !m)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} style={{ background: "none", color: dark ? C.ivory50 : C.ink900 }} title="Menu">
+        <button className="ss-btn" onClick={() => setMenuOpen((m) => !m)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} style={{ background: "none", color: dark ? C.ivory50 : C.ink900, padding: 8, borderRadius: 8 }} title="Menu">
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -1111,6 +1114,10 @@ function Header({ t, lang, setLang, theme, setTheme, cartCount, onCartClick, onL
         @media (min-width: 860px) {
           .ss-nav-desktop { display:flex !important; }
           .ss-search-desktop { display:flex !important; }
+        }
+        @media (max-width: 400px) {
+          .ss-tagline { display:none; }
+          .ss-header-row { gap: 4px !important; padding-left: 12px !important; padding-right: 12px !important; }
         }
       `}</style>
     </header>
@@ -1203,8 +1210,8 @@ function HomePage({ t, lang, dark, products, offers, go, addToCart, addComboToCa
               ))}
             </div>
           </div>
-          <div style={{ flex: "1 1 300px", minWidth: 260, display: "flex", justifyContent: "center" }}>
-            <div style={{ position: "relative", width: 300, height: 300 }} className="ss-fade-in">
+          <div style={{ flex: "1 1 260px", minWidth: 220, display: "flex", justifyContent: "center" }}>
+            <div style={{ position: "relative", width: "min(300px, 78vw)", height: "min(300px, 78vw)" }} className="ss-fade-in">
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${C.gold400}66`, animation: "spin 40s linear infinite" }} />
               <style>{`@keyframes spin { to { transform: rotate(360deg);} }`}</style>
               <div style={{
